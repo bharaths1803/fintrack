@@ -100,7 +100,7 @@ const Sidebar = () => {
             href={"/categories"}
             onClick={handleCloseMobileMenu}
             className={`flex items-center px-3 py-4 gap-3 rounded-md transition-colors font-medium ${
-              pathName === "/budgets"
+              pathName === "/categories"
                 ? "bg-primary-50 text-primary-700"
                 : "hover:bg-gray-100 text-gray-700"
             }`}
