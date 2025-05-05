@@ -17,10 +17,26 @@ export interface TransactionWithCategory extends Transaction {
   categoryId: string;
 }
 
+export interface Budget {
+  id: string;
+  month: number;
+  year: number;
+  amount: number;
+}
+
+export interface BudgetWithCategory extends Budget {
+  categoryId: string;
+}
+
 export interface FilterOptions {
   type: "ALL" | "EXPENSE" | "INCOME";
   searchTerm: string;
   categoryId: string | null;
   startDate: string | null;
   endDate: string | null;
+}
+
+export interface FilterOptionsBudgets {
+  month: number;
+  year: number;
 }
