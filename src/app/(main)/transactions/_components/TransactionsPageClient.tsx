@@ -57,6 +57,7 @@ const TransactionsPageClient = ({
       note: "",
       date: new Date(),
       categoryId: categories?.[0].id || "",
+      isRecurring: false,
     }
   );
 
@@ -81,6 +82,7 @@ const TransactionsPageClient = ({
         note: transaction.note,
         date: transaction.date,
         categoryId: transaction.categoryId,
+        isRecurring: transaction.isRecurring,
       });
       setShowEditModal(true);
       setEditingTransactionId(transaction.id);
@@ -91,6 +93,7 @@ const TransactionsPageClient = ({
         note: "",
         date: new Date(),
         categoryId: "",
+        isRecurring: false,
       });
       setEditingTransactionId("");
     }
@@ -239,7 +242,7 @@ const TransactionsPageClient = ({
   }, [categories, formData.type]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full">
       {/* Header */}
       <div className="sm:flex items-center justify-between">
         <h1 className="text-gray-900 font-bold text-2xl">Transactions</h1>
@@ -264,7 +267,7 @@ const TransactionsPageClient = ({
               placeholder="Search Transactions..."
               value={filterOptions.searchTerm}
               onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
-              className="pl-10 py-2 pr-4 border border-gray-300 rounded-md focus:border-primary-500 focus:ring-primary-500 w-full"
+              className="pl-10 py-2 pr-4 border border-gray-300 rounded-md focus:border-primary-500 focus:ring-primary-500 w-full z-10"
             />
           </div>
 
@@ -640,6 +643,47 @@ const TransactionsPageClient = ({
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isRecurring"
+                      name="isRecurring"
+                      checked={formData.isRecurring}
+                      onChange={handleChange}
+                      className="border-gray-300 rounded text-primary-600 focus:ring-primary-500 h-4 w-4"
+                    />
+                    <label
+                      htmlFor="isRecurring"
+                      className="ml-2 block text-sm font-medium text-gray-700"
+                    >
+                      Recurring Transaction
+                    </label>
+                  </div>
+
+                  {formData.isRecurring && (
+                    <div>
+                      <label
+                        htmlFor="recurringInterval"
+                        className="block text-sm font-medium text-gray-900 mb-1"
+                      >
+                        Recurring Interval
+                      </label>
+                      <select
+                        id="recurringInterval"
+                        name="recurringInterval"
+                        value={formData.recurringInterval || ""}
+                        onChange={handleChange}
+                        className={`input`}
+                      >
+                        <option value={"DAILY"}>Daily</option>
+                        <option value={"WEEKLY"}>Weekly</option>
+                        <option value={"MONTHLY"}>Monthly</option>
+                        <option value={"YEARLY"}>Yearly</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <button
                   className="btn-primary w-full p-2 flex items-center justify-center"

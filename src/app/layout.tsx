@@ -33,12 +33,11 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+          <Header />
           <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
             {/* Header */}
-            <Header />
             {children}
             {/* Footer */}
-            <Footer />
           </div>
           <Toaster />
         </body>

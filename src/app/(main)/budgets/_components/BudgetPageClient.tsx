@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import BudgetProgess from "../../_components/BudgetProgress";
 
 type Budgets = Awaited<ReturnType<typeof getBudgets>>;
 type Categories = Awaited<ReturnType<typeof getCategories>>;
@@ -37,11 +38,6 @@ type Categories = Awaited<ReturnType<typeof getCategories>>;
 interface BudgetsPageClientProps {
   budgets: Budgets;
   categories: Categories;
-}
-
-interface BudgetProgessProps {
-  goalAmount: number;
-  spentAmount: number;
 }
 
 const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
@@ -72,6 +68,7 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
   const handleOpenModal = (budget?: BudgetWithCategory) => {
     if (budget) {
       console.log("Category id", budget.categoryId);
+      setEditingBudgetId(budget.id);
       setFormData({
         month: budget.month,
         year: budget.year,
@@ -79,7 +76,6 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
         categoryId: budget.categoryId,
       });
       setShowEditModal(true);
-      setEditingBudgetId(budget.id);
     } else {
       setFormData({
         month: new Date().getMonth(),
@@ -98,6 +94,12 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
     setShowEditModal(false);
 
     setFormErrors({});
+    setFormData({
+      month: new Date().getMonth(),
+      year: new Date().getFullYear(),
+      amount: 0,
+      categoryId: "",
+    });
   };
 
   const handleChange = (
@@ -390,7 +392,7 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
                     <select
                       id="categoryId"
                       name="categoryId"
-                      value={formData.categoryId}
+                      value={formData.categoryId || ""}
                       onChange={handleChange}
                       className={`input`}
                       disabled={!!editingBudgetId}
@@ -404,7 +406,7 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
                           );
                         })}
                       {editingBudgetId && (
-                        <option value={formData.categoryId}>
+                        <option value={formData.categoryId ?? ""}>
                           {
                             categories?.find(
                               (cat) => cat.id === formData.categoryId
@@ -463,9 +465,9 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
             >
               <div className="flex justify-between items-center mb-2">
                 <div className="flex gap-2 items-center">
-                  <span className="text-2xl">{budget.category.iconUrl}</span>
+                  <span className="text-2xl">{budget.category?.iconUrl}</span>
                   <h3 className="font-medium text-gray-900">
-                    {budget.category.name}
+                    {budget.category?.name}
                   </h3>
                 </div>
                 <div className="flex justify-center gap-2 items-center">
@@ -552,59 +554,6 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
         </>
       )}
     </div>
-  );
-};
-
-const BudgetProgess = ({ goalAmount, spentAmount }: BudgetProgessProps) => {
-  const remaining = goalAmount - spentAmount;
-  const percentage = Math.min(
-    Math.round((spentAmount / goalAmount) * 100),
-    100
-  );
-
-  let statusColor = "bg-success-500";
-  if (percentage >= 90) statusColor = "bg-warning-500";
-  else if (percentage >= 75) statusColor = "bg-error-500";
-
-  return (
-    <>
-      <div className="mb-2">
-        <div className="flex justify-between text-sm mb-1">
-          <span className="text-gray-600">${spentAmount.toFixed(2)} spent</span>
-          <span className="text-gray-900 font-medium">
-            ${goalAmount.toFixed(2)}
-          </span>
-        </div>
-        <div className="w-full h-2.5 bg-gray-200 rounded-full">
-          <div
-            style={{ width: `${percentage}%` }}
-            className={`h-2.5 rounded-full duration-500 transition-colors ${statusColor}`}
-          />
-        </div>
-      </div>
-      <div className="flex justify-between items-center text-sm">
-        <span
-          className={`font-medium ${
-            remaining >= 0 ? "text-success-600" : "text-error-600"
-          }`}
-        >
-          {remaining >= 0
-            ? `$${remaining.toFixed(2)} remaining`
-            : `$${Math.abs(remaining).toFixed(2)} over budget`}
-        </span>
-        <span
-          className={`rounded font-medium text-xs py-2 px-1 ${
-            percentage >= 90
-              ? "bg-error-100 text-error-800"
-              : percentage >= 75
-              ? "bg-warning-100 text-warning-800"
-              : "bg-success-100 text-success-800"
-          }`}
-        >
-          {percentage}%
-        </span>
-      </div>
-    </>
   );
 };
 

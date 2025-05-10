@@ -1,6 +1,7 @@
 import { BarChart2, ChevronRight, PieChart, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
+import Footer from "./_components/Footer";
 
 export default function Home() {
   const features = [
@@ -74,6 +75,7 @@ export default function Home() {
           </SignUpButton>
         </SignedOut>
       </div>
+      <Footer />
     </>
   );
 }

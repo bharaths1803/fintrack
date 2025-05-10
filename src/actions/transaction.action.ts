@@ -19,9 +19,14 @@ export async function createTransaction(
       data: {
         userId,
         ...data,
+        nextRecurringDate:
+          data.isRecurring && data.recurringInterval
+            ? calculateNextRecurringDate(data.date, data.recurringInterval)
+            : null,
       },
     });
     revalidatePath("/transactions");
+    revalidatePath("/dashboard");
     return { success: true, transaction: serializeTransaction(transaction) };
   } catch (error) {
     console.log("Error creating Transactions", error);
@@ -105,4 +110,23 @@ export async function updateTransaction(data: TransactionWithCategory) {
     console.log("Error in updating transaction", error);
     return { success: false, error };
   }
+}
+
+function calculateNextRecurringDate(startDate: Date, interval: string) {
+  const date = new Date(startDate);
+  switch (interval) {
+    case "DAILY":
+      date.setDate(date.getDate() + 1);
+      break;
+    case "WEEKLY":
+      date.setDate(date.getDate() + 7);
+      break;
+    case "MONTHLY":
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case "YEARLY":
+      date.setFullYear(date.getFullYear() + 1);
+      break;
+  }
+  return date;
 }

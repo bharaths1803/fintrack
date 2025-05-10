@@ -11,6 +11,8 @@ export interface Transaction {
   amount: number;
   note: string;
   date: Date;
+  isRecurring: boolean;
+  recurringInterval?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
 }
 
 export interface TransactionWithCategory extends Transaction {
@@ -25,7 +27,7 @@ export interface Budget {
 }
 
 export interface BudgetWithCategory extends Budget {
-  categoryId: string;
+  categoryId: string | null;
 }
 
 export interface FilterOptions {
@@ -37,6 +39,11 @@ export interface FilterOptions {
 }
 
 export interface FilterOptionsBudgets {
+  month: number;
+  year: number;
+}
+
+export interface FilterOptionsDashboardData {
   month: number;
   year: number;
 }
