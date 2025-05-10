@@ -42,11 +42,12 @@ model Transaction {
   lastProcessedDate DateTime?
   recurringInterval RecurringInterval?
   nextRecurringDate DateTime?
-
-  User       User?    @relation(fields: [userId], references: [id])
-  userId     String?
-  category   Category @relation(fields: [categoryId], references: [id])
-  categoryId String
+  isCompleted       Boolean            @default(true)
+  reminderDays      Int?
+  User              User?              @relation(fields: [userId], references: [id])
+  userId            String?
+  category          Category           @relation(fields: [categoryId], references: [id])
+  categoryId        String
 
   @@index([userId])
   @@map("transactions")

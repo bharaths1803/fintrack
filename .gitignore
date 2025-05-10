@@ -48,3 +48,5 @@ package-lock.json
 
 prisma/migrations/*
 src/generated/*
+
+generated/*
