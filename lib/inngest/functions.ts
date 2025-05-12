@@ -1,5 +1,9 @@
+import { sendEmail } from "../../actions/emails.action";
+import EmailTemplate from "../../emails/Template";
 import { prisma } from "../prisma";
 import { inngest } from "./client";
+
+// Hello World Sample Function
 
 export const helloWorld = inngest.createFunction(
   { id: "hello-world" },
@@ -9,6 +13,8 @@ export const helloWorld = inngest.createFunction(
     return { message: `Hello ${event.data.email}!` };
   }
 );
+
+// Recurring Transactions
 
 export const processRecurringTransactions = inngest.createFunction(
   {
@@ -52,6 +58,8 @@ export const processRecurringTransactions = inngest.createFunction(
             isRecurring: false,
             userId: transaction.userId,
             categoryId: transaction.categoryId,
+            isCompleted: transaction.isCompleted,
+            reminderDays: transaction.reminderDays,
           },
         });
 
@@ -129,4 +137,71 @@ function calculateNextRecurringDate(startDate: Date, interval: string) {
       break;
   }
   return date;
+}
+
+// Due Transactions Reminder
+
+export const generateDueReminders = inngest.createFunction(
+  {
+    id: "generate-due-reminders",
+    name: "Generate Due Reminders",
+  },
+  { cron: "0 0 * * *" },
+  async ({ step }) => {
+    const users = await prisma.user.findMany({
+      include: {
+        transactions: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    for (const user of users) {
+      await step.run(`generate-due-reminders-${user.id}`, async () => {
+        const dueTransactions = user.transactions.filter(
+          (transaction) => !transaction.isCompleted
+        );
+
+        const filtereddueTransactions = dueTransactions.filter(
+          (transaction) => {
+            const today = new Date();
+            const dueDate = new Date(transaction.date);
+            const remainingDaysFromDue = Math.ceil(
+              (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+            );
+            return remainingDaysFromDue == transaction.reminderDays;
+          }
+        );
+
+        const dueFromTodayTransactions = filtereddueTransactions.map(
+          (transaction) => ({
+            categoryName: transaction.category.name,
+            amount: Number(transaction.amount),
+            text: calculateDueText(transaction.reminderDays || 0),
+          })
+        );
+
+        await sendEmail({
+          to: user.email,
+          subject: "Upcoming Transactions Reminder",
+          react: EmailTemplate({
+            userName: user.name,
+            data: dueFromTodayTransactions,
+          }),
+        });
+      });
+    }
+
+    return { processed: users.length };
+  }
+);
+
+function calculateDueText(days: number) {
+  let ans = "Due ";
+  if (days == 0) ans += "today";
+  else if (days == 1) ans += "tommorrow";
+  else ans += `in ${days} days`;
+  return ans;
 }

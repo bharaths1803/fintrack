@@ -19,6 +19,7 @@ export interface Transaction {
 
 export interface TransactionWithCategory extends Transaction {
   categoryId: string;
+  accountId?: string | null;
 }
 
 export interface Budget {
@@ -30,6 +31,13 @@ export interface Budget {
 
 export interface BudgetWithCategory extends Budget {
   categoryId: string | null;
+}
+
+export interface Account {
+  id: string;
+  accountName: string;
+  currentBalance: number;
+  isDefault: boolean;
 }
 
 export interface FilterOptions {

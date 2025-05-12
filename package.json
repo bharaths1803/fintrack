@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "email": "email dev",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.18.1",
     "@prisma/client": "^6.7.0",
+    "@react-email/components": "^0.0.39",
     "concurrently": "^9.1.2",
     "date-fns": "^4.1.0",
     "inngest": "^3.35.0",
@@ -20,7 +22,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
-    "recharts": "^2.15.3"
+    "recharts": "^2.15.3",
+    "resend": "^4.5.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -31,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "prisma": "^6.7.0",
+    "react-email": "4.0.13",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

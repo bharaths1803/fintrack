@@ -1,6 +1,14 @@
 "use client";
 
-import { DollarSign, Home, List, PieChart, TrendingUp } from "lucide-react";
+import {
+  DollarSign,
+  Home,
+  List,
+  PieChart,
+  Tags,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState } from "react";
@@ -85,6 +93,18 @@ const Sidebar = () => {
             Transactions
           </Link>
           <Link
+            href={"/accounts"}
+            onClick={handleCloseMobileMenu}
+            className={`flex items-center px-3 py-4 gap-3 rounded-md transition-colors font-medium ${
+              pathName === "/accounts"
+                ? "bg-primary-50 text-primary-700"
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            <Wallet size={18} />
+            Accounts
+          </Link>
+          <Link
             href={"/budgets"}
             onClick={handleCloseMobileMenu}
             className={`flex items-center px-3 py-4 gap-3 rounded-md transition-colors font-medium ${
@@ -105,7 +125,7 @@ const Sidebar = () => {
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            <List size={18} />
+            <Tags size={18} />
             Categories
           </Link>
         </nav>

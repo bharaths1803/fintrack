@@ -26,6 +26,7 @@ model User {
   transactions  Transaction[]
   categories    Category[]
   budgets       Budget[]
+  accounts      Account[]
 
   @@map("users")
 }
@@ -44,10 +45,12 @@ model Transaction {
   nextRecurringDate DateTime?
   isCompleted       Boolean            @default(true)
   reminderDays      Int?
-  User              User?              @relation(fields: [userId], references: [id])
+  user              User?              @relation(fields: [userId], references: [id])
   userId            String?
   category          Category           @relation(fields: [categoryId], references: [id])
   categoryId        String
+  account           Account?           @relation(fields: [accountId], references: [id])
+  accountId         String?
 
   @@index([userId])
   @@map("transactions")
@@ -85,6 +88,23 @@ model Budget {
 
   @@index([userId])
   @@map("budgets")
+}
+
+model Account {
+  id             String  @id @default(uuid())
+  accountName    String
+  currentBalance Decimal
+  income         Decimal
+  expense        Decimal
+  isDefault      Boolean @default(false)
+
+  transactions Transaction[]
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@index([userId])
+  @@map("accounts")
 }
 
 enum TransactionType {

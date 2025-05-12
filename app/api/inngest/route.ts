@@ -1,5 +1,6 @@
 import { serve } from "inngest/next";
 import {
+  generateDueReminders,
   helloWorld,
   processRecurringTransactions,
   triggerRecurringTransactions,
@@ -14,5 +15,6 @@ export const { GET, POST, PUT } = serve({
     helloWorld,
     processRecurringTransactions,
     triggerRecurringTransactions,
+    generateDueReminders,
   ],
 });

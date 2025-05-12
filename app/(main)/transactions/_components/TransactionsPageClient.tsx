@@ -12,11 +12,7 @@ import {
   getTransactions,
   updateTransaction,
 } from "../../../../actions/transaction.action";
-import {
-  Category,
-  FilterOptions,
-  TransactionWithCategory,
-} from "../../../../types";
+import { FilterOptions, TransactionWithCategory } from "../../../../types";
 import { addDays, format } from "date-fns";
 import {
   ArrowDownRight,
@@ -33,18 +29,22 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { getAccounts } from "../../../../actions/account.action";
 
 type Transactions = Awaited<ReturnType<typeof getTransactions>>;
 type Categories = Awaited<ReturnType<typeof getCategories>>;
+type Accounts = Awaited<ReturnType<typeof getAccounts>>;
 
 interface TransactionsPageClientProps {
   transactions: Transactions;
   categories: Categories;
+  accounts: Accounts;
 }
 
 const TransactionsPageClient = ({
   transactions,
   categories,
+  accounts,
 }: TransactionsPageClientProps) => {
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -92,6 +92,7 @@ const TransactionsPageClient = ({
         recurringInterval: transaction.recurringInterval,
         isCompleted: transaction.isCompleted,
         reminderDays: transaction.reminderDays,
+        accountId: transaction.accountId,
       });
       setShowEditModal(true);
       setEditingTransactionId(transaction.id);
@@ -104,6 +105,7 @@ const TransactionsPageClient = ({
         categoryId: "",
         isRecurring: false,
         isCompleted: true,
+        accountId: accounts?.[0].id,
       });
       setEditingTransactionId("");
     }
@@ -276,6 +278,7 @@ const TransactionsPageClient = ({
       const daysLeft = Math.ceil(
         (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
       );
+      console.log(transaction.amount, daysLeft);
       return {
         type: "due-soon",
         text: `Due in ${daysLeft} day${daysLeft > 1 ? "s" : ""}`,
@@ -595,7 +598,7 @@ const TransactionsPageClient = ({
         </div>
       )}
 
-      {/* Add or Edit Category Modal */}
+      {/* Add or Edit Transaction Modal */}
       {showModal && (
         <>
           <div className="z-40 h-full fixed inset-0 bg-black opacity-50" />
@@ -603,7 +606,7 @@ const TransactionsPageClient = ({
             <div className="max-w-md bg-white rounded-lg shadow-xl w-full animate-scale z-50">
               <div className="flex justify-between items-center p-4 border-b border-gray-200">
                 <h2 className="text-gray-900 text-xl font-semibold">
-                  {showEditModal ? "Update Category" : "Add Category"}
+                  {showEditModal ? "Update Transaction" : "Add Transaction"}
                 </h2>
                 <button
                   className="text-gray-500 hover:text-gray-700"
@@ -667,6 +670,28 @@ const TransactionsPageClient = ({
                       {formErrors.amount}
                     </p>
                   )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="accountId"
+                    className="block text-sm font-medium text-gray-900 mb-1"
+                  >
+                    Account
+                  </label>
+                  <select
+                    id="accountId"
+                    name="accountId"
+                    value={formData.accountId || accounts?.[0].id}
+                    onChange={handleChange}
+                    className={`input`}
+                    disabled={!!editingTransactionId}
+                  >
+                    {accounts?.map((account, idx) => (
+                      <option value={account.id} key={idx}>
+                        {account.accountName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-1">

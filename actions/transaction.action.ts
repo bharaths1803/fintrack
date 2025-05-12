@@ -25,6 +25,36 @@ export async function createTransaction(
             : null,
       },
     });
+    if (!data || !data.accountId)
+      throw new Error("Account Required for creating transaction");
+    const account = await prisma.account.findUnique({
+      where: {
+        id: data.accountId,
+      },
+    });
+
+    if (!account) throw new Error("Account not found");
+
+    const income =
+      transaction.type === "INCOME" ? transaction.amount.toNumber() : 0;
+    const expense =
+      transaction.type === "EXPENSE" ? transaction.amount.toNumber() : 0;
+    const balanceChange =
+      account.currentBalance.toNumber() + transaction.type === "EXPENSE"
+        ? -transaction.amount.toNumber()
+        : transaction.amount.toNumber();
+
+    await prisma.account.update({
+      where: {
+        id: data.accountId,
+      },
+      data: {
+        currentBalance: balanceChange,
+        income,
+        expense,
+      },
+    });
+
     revalidatePath("/transactions");
     revalidatePath("/dashboard");
     return { success: true, transaction: serializeTransaction(transaction) };
@@ -57,10 +87,7 @@ export async function getTransactions() {
       },
     });
 
-    const serializedTransactions = transactions.map((t) => ({
-      ...t,
-      amount: t.amount.toNumber(),
-    }));
+    const serializedTransactions = transactions.map(serializeTransaction);
 
     return serializedTransactions;
   } catch (error) {
@@ -78,7 +105,36 @@ export async function deleteTransaction(transactionId: string) {
         id: transactionId,
       },
     });
-    if (!transaction) throw new Error("Transaction not found");
+    if (!transaction || !transaction.accountId)
+      throw new Error("Transaction not found");
+
+    const account = await prisma.account.findUnique({
+      where: {
+        id: transaction.accountId,
+      },
+    });
+
+    if (!account) throw new Error("Account not found");
+
+    const income =
+      account.income.toNumber() -
+      (transaction.type === "INCOME" ? transaction.amount.toNumber() : 0);
+    const expense =
+      account.expense.toNumber() -
+      (transaction.type === "EXPENSE" ? transaction.amount.toNumber() : 0);
+    const balanceChange = income - expense;
+
+    await prisma.account.update({
+      where: {
+        id: transaction.accountId,
+      },
+      data: {
+        currentBalance: balanceChange,
+        income,
+        expense,
+      },
+    });
+
     await prisma.transaction.delete({
       where: {
         id: transactionId,
@@ -97,7 +153,17 @@ export async function updateTransaction(data: TransactionWithCategory) {
     const userId = await getDbUserId();
     if (!userId) return;
     const { id, ...transactionData } = data;
-    const transaction = await prisma.transaction.update({
+
+    const transaction = await prisma.transaction.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!transaction || !transaction.accountId)
+      throw new Error("Transaction not found");
+
+    const updateDtransaction = await prisma.transaction.update({
       where: {
         id,
       },
@@ -113,8 +179,48 @@ export async function updateTransaction(data: TransactionWithCategory) {
       },
     });
 
+    const account = await prisma.account.findUnique({
+      where: {
+        id: transaction.accountId,
+      },
+    });
+
+    if (!account) throw new Error("Account not found");
+
+    const changedAccountIncome =
+      account.income.toNumber() -
+      (transaction.type === "INCOME" ? transaction.amount.toNumber() : 0) +
+      (updateDtransaction.type === "INCOME"
+        ? updateDtransaction.amount.toNumber()
+        : 0);
+
+    const changedAccountExpense =
+      account.expense.toNumber() -
+      (transaction.type === "EXPENSE" ? transaction.amount.toNumber() : 0) +
+      (updateDtransaction.type === "EXPENSE"
+        ? updateDtransaction.amount.toNumber()
+        : 0);
+
+    const changedAccountBalance = changedAccountIncome - changedAccountExpense;
+
+    await prisma.account.update({
+      where: {
+        id: transaction.accountId,
+      },
+      data: {
+        income: changedAccountIncome,
+        expense: changedAccountExpense,
+        currentBalance: changedAccountBalance,
+      },
+    });
+
     revalidatePath("/transactions");
-    return { success: true, transaction: serializeTransaction(transaction) };
+    revalidatePath("/accounts");
+
+    return {
+      success: true,
+      transaction: serializeTransaction(updateDtransaction),
+    };
   } catch (error) {
     console.log("Error in updating transaction", error);
     return { success: false, error };

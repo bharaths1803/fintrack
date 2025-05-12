@@ -8,7 +8,7 @@ import {
   getMonthlyBudgets,
   getRecentTransactions,
 } from "../../../../actions/dashboard.action";
-import { format } from "date-fns";
+import { addDays, format } from "date-fns";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -22,7 +22,10 @@ import Link from "next/link";
 import BudgetProgess from "../../_components/BudgetProgress";
 import { useEffect, useState } from "react";
 import { COLORS, monthOptions } from "../../../../data";
-import { FilterOptionsDashboardData } from "../../../../types";
+import {
+  FilterOptionsDashboardData,
+  TransactionWithCategory,
+} from "../../../../types";
 import {
   PieChart,
   Pie,
@@ -80,6 +83,25 @@ const DashboardPageClient = ({
   };
 
   const currYear = new Date().getFullYear();
+
+  const getDueStatus = (transaction: TransactionWithCategory) => {
+    if (transaction.isCompleted) return;
+
+    const dueDate = new Date(transaction.date);
+    const today = new Date();
+    const reminderDate = addDays(dueDate, -transaction.reminderDays!);
+    if (dueDate < today) return { type: "overdue", text: "Overdue" };
+    else if (reminderDate <= today) {
+      const daysLeft = Math.ceil(
+        (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      console.log(transaction.amount, daysLeft);
+      return {
+        type: "due-soon",
+        text: `Due in ${daysLeft} day${daysLeft > 1 ? "s" : ""}`,
+      };
+    } else return null;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -362,58 +384,91 @@ const DashboardPageClient = ({
                       scope="col"
                       className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
                     >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
+                    >
                       Recurring
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {recentTransactions?.map((transaction, idx) => (
-                    <tr
-                      className="hover:bg-gray-50 transition-colors"
-                      key={idx}
-                    >
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        {format(new Date(transaction.date), "MMM dd, yyyy")}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        {transaction.note}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        {transaction.category.iconUrl}{" "}
-                        {transaction.category.name}
-                      </td>
-                      <td className="px-6 py-4 text-sm whitespace-nowrap">
-                        <div
-                          className={`flex items-center ${
-                            transaction.type === "INCOME"
-                              ? "text-success-600"
-                              : "text-error-600"
-                          }`}
-                        >
-                          {transaction.type === "INCOME" ? (
-                            <ArrowUpRight size={16} className="mr-1" />
-                          ) : (
-                            <ArrowDownRight size={16} className="mr-1" />
-                          )}
-                          ${transaction.amount.toFixed(2)}
-                        </div>
-                      </td>
-                      <td
-                        className={`px-6 py-4 text-sm text-gray-600 whitespace-nowrap`}
+                  {recentTransactions?.map((transaction, idx) => {
+                    const dueStatus = getDueStatus(transaction);
+
+                    return (
+                      <tr
+                        className="hover:bg-gray-50 transition-colors"
+                        key={idx}
                       >
-                        {transaction.isRecurring ? (
-                          <div className="flex items-center text-primary-600">
-                            <Repeat className="mr-2" size={16} />
-                            <span className="capitalize">
-                              {transaction.recurringInterval}
-                            </span>
+                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                          {format(new Date(transaction.date), "MMM dd, yyyy")}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                          {transaction.note}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                          {transaction.category.iconUrl}{" "}
+                          {transaction.category.name}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          <div
+                            className={`flex items-center ${
+                              transaction.type === "INCOME"
+                                ? "text-success-600"
+                                : "text-error-600"
+                            }`}
+                          >
+                            {transaction.type === "INCOME" ? (
+                              <ArrowUpRight size={16} className="mr-1" />
+                            ) : (
+                              <ArrowDownRight size={16} className="mr-1" />
+                            )}
+                            ${transaction.amount.toFixed(2)}
                           </div>
-                        ) : (
-                          <span className="text-gray-400 w-full pl-7">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td
+                          className={`px-6 py-4 text-sm text-gray-600 whitespace-nowrap`}
+                        >
+                          {transaction.isCompleted ? (
+                            <span className="px-2 py-1 inline-flex items-center bg-success-100 text-success-800 rounded-full text-xs font-medium">
+                              Completed
+                            </span>
+                          ) : dueStatus ? (
+                            <span
+                              className={`inline-flex items-center px-2 py-1 ${
+                                dueStatus.type === "overdue"
+                                  ? "bg-error-100 text-error-800"
+                                  : "bg-warn-100 text-warning-800"
+                              } rounded-full text-xs font-medium`}
+                            >
+                              {dueStatus.text}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 flex items-center bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          className={`px-6 py-4 text-sm text-gray-600 whitespace-nowrap`}
+                        >
+                          {transaction.isRecurring ? (
+                            <div className="flex items-center text-primary-600">
+                              <Repeat className="mr-2" size={16} />
+                              <span className="capitalize">
+                                {transaction.recurringInterval}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 w-full pl-7">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
