@@ -46,6 +46,7 @@ export interface FilterOptions {
   categoryId: string | null;
   startDate: string | null;
   endDate: string | null;
+  accountId: string | null;
 }
 
 export interface FilterOptionsBudgets {
@@ -56,4 +57,5 @@ export interface FilterOptionsBudgets {
 export interface FilterOptionsDashboardData {
   month: number;
   year: number;
+  accountId: string | null;
 }

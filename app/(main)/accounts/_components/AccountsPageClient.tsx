@@ -4,6 +4,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Check,
+  Download,
   Edit2,
   Loader,
   Plus,
@@ -21,6 +22,7 @@ import {
 import { useState } from "react";
 import { Account } from "../../../../types";
 import toast from "react-hot-toast";
+import axios from "axios";
 
 type Accounts = Awaited<ReturnType<typeof getAccounts>>;
 
@@ -36,6 +38,8 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const [isDefaultAccount, setIsDefaultAccount] = useState<boolean>(false);
+  const [isExportingAccountsData, setIsExportingAccountsData] =
+    useState<boolean>(false);
 
   const [formData, setFormData] = useState<Omit<Account, "id">>({
     accountName: "",
@@ -151,6 +155,31 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
       toast.error("Failed to delete transaction!");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDownloadAccountsData = async () => {
+    try {
+      setIsExportingAccountsData(true);
+      const res = await axios.post(
+        "/api/exports/accounts",
+        {},
+        {
+          responseType: "blob",
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "accounts.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.log("Download failed", error);
+    } finally {
+      setIsExportingAccountsData(false);
     }
   };
 
@@ -279,6 +308,19 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
           </div>
         </>
       )}
+
+      {/* Export Accounts */}
+
+      <div className="flex justify-start sm:justify-end my-5">
+        <button
+          className="btn-outline flex items-center px-3 py-2 text-xs"
+          onClick={handleDownloadAccountsData}
+          disabled={isExportingAccountsData}
+        >
+          <Download size={18} className="mr-1" />
+          Export excel
+        </button>
+      </div>
 
       {/* Accounts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

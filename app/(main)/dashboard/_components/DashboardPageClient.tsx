@@ -39,11 +39,13 @@ import {
   YAxis,
   Bar,
 } from "recharts";
+import { getAccounts } from "../../../../actions/account.action";
 
 type RecentTransactions = Awaited<ReturnType<typeof getRecentTransactions>>;
 type MonthlyBudgets = Awaited<ReturnType<typeof getMonthlyBudgets>>;
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
 type ExpensesChartData = Awaited<ReturnType<typeof getExpensesChartData>>;
+type Accounts = Awaited<ReturnType<typeof getAccounts>>;
 type IncomeVsExpenseData = Awaited<
   ReturnType<typeof getExpenseVsIncomeChartData>
 >;
@@ -54,6 +56,7 @@ interface DashboardPageClientProps {
   dashboardData: DashboardData;
   expensesChartData: ExpensesChartData;
   incomeVsExpenseData: IncomeVsExpenseData;
+  accounts: Accounts;
 }
 
 const DashboardPageClient = ({
@@ -62,17 +65,21 @@ const DashboardPageClient = ({
   dashboardData,
   expensesChartData,
   incomeVsExpenseData,
+  accounts,
 }: DashboardPageClientProps) => {
   const [dataFilterType, setDataFilterType] = useState<string>("MONTHLY");
   const [dashboardDataLocal, setDashboardDataLocal] =
     useState<DashboardData>(dashboardData);
   const [expensesChartDataLocal, setExpensesChartDataLocal] =
     useState<ExpensesChartData>(expensesChartData);
+  const [incomeVsExpenseDataLocal, setIncomeVsExpenseDataLocal] =
+    useState<IncomeVsExpenseData>(incomeVsExpenseData);
 
   const [dataFilterOptions, setDataFilterOptions] =
     useState<FilterOptionsDashboardData>({
       month: new Date().getMonth(),
       year: new Date().getFullYear(),
+      accountId: null,
     });
 
   const handleFilterChange = (
@@ -108,23 +115,47 @@ const DashboardPageClient = ({
       if (dataFilterType == "MONTHLY") {
         const res1 = await getDashboardData(
           dataFilterOptions.month,
-          dataFilterOptions.year
+          dataFilterOptions.year,
+          dataFilterOptions.accountId
         );
         const res2 = await getExpensesChartData(
           dataFilterOptions.month,
-          dataFilterOptions.year
+          dataFilterOptions.year,
+          dataFilterOptions.accountId
+        );
+
+        const res3 = await getExpenseVsIncomeChartData(
+          dataFilterOptions.accountId
         );
         setDashboardDataLocal(res1);
         setExpensesChartDataLocal(res2);
+        setIncomeVsExpenseDataLocal(res3);
       } else {
-        const res1 = await getDashboardData(-1, dataFilterOptions.year);
-        const res2 = await getExpensesChartData(-1, dataFilterOptions.year);
+        const res1 = await getDashboardData(
+          -1,
+          dataFilterOptions.year,
+          dataFilterOptions.accountId
+        );
+        const res2 = await getExpensesChartData(
+          -1,
+          dataFilterOptions.year,
+          dataFilterOptions.accountId
+        );
+        const res3 = await getExpenseVsIncomeChartData(
+          dataFilterOptions.accountId
+        );
         setDashboardDataLocal(res1);
         setExpensesChartDataLocal(res2);
+        setIncomeVsExpenseDataLocal(res3);
       }
     };
     fetchData();
-  }, [dataFilterOptions.month, dataFilterOptions.year, dataFilterType]);
+  }, [
+    dataFilterOptions.month,
+    dataFilterOptions.year,
+    dataFilterType,
+    dataFilterOptions.accountId,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -197,6 +228,28 @@ const DashboardPageClient = ({
             >
               <option value={currYear - 1}>{currYear - 1}</option>
               <option value={currYear}>{currYear}</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="accountId"
+              className="block text-sm font-medium text-gray-900 mb-1"
+            >
+              Account
+            </label>
+            <select
+              id="accountId"
+              name="accountId"
+              value={dataFilterOptions.accountId || "ALL"}
+              onChange={(e) => handleFilterChange("accountId", e.target.value)}
+              className={`input`}
+            >
+              <option value={"ALL"}>All Accounts</option>
+              {accounts?.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.accountName}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -310,7 +363,7 @@ const DashboardPageClient = ({
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={incomeVsExpenseData}
+                data={incomeVsExpenseDataLocal}
                 margin={{ top: 20, right: 30, bottom: 10, left: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />

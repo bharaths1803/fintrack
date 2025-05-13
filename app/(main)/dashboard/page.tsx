@@ -7,6 +7,7 @@ import {
 } from "../../../actions/dashboard.action";
 import React from "react";
 import DashboardPageClient from "./_components/DashboardPageClient";
+import { getAccounts } from "../../../actions/account.action";
 
 const DashboardPage = async () => {
   const recentTransactions = await getRecentTransactions();
@@ -14,9 +15,10 @@ const DashboardPage = async () => {
   const date = new Date();
   const month = date.getMonth();
   const year = date.getFullYear();
-  const dashboardData = await getDashboardData(month, year);
-  const expensesChartData = await getExpensesChartData(month, year);
-  const incomeVsExpenseData = await getExpenseVsIncomeChartData(month, year);
+  const dashboardData = await getDashboardData(month, year, null);
+  const expensesChartData = await getExpensesChartData(month, year, null);
+  const incomeVsExpenseData = await getExpenseVsIncomeChartData(null);
+  const accounts = await getAccounts();
 
   return (
     <DashboardPageClient
@@ -25,6 +27,7 @@ const DashboardPage = async () => {
       dashboardData={dashboardData}
       expensesChartData={expensesChartData}
       incomeVsExpenseData={incomeVsExpenseData}
+      accounts={accounts}
     />
   );
 };

@@ -18,6 +18,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Check,
+  Download,
   Edit2,
   Filter,
   Loader,
@@ -25,11 +26,13 @@ import {
   Repeat,
   Search,
   Trash2,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { getAccounts } from "../../../../actions/account.action";
+import axios from "axios";
 
 type Transactions = Awaited<ReturnType<typeof getTransactions>>;
 type Categories = Awaited<ReturnType<typeof getCategories>>;
@@ -52,6 +55,8 @@ const TransactionsPageClient = ({
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isExportingTransactionsData, setIsExportingTransactionsData] =
+    useState<boolean>(false);
   const [deletingTransaction, setDeletingTransaction] =
     useState<TransactionWithCategory | null>(null);
 
@@ -77,6 +82,7 @@ const TransactionsPageClient = ({
     categoryId: null,
     startDate: null,
     endDate: null,
+    accountId: "ALL",
   });
 
   const handleOpenModal = (transaction?: TransactionWithCategory) => {
@@ -222,6 +228,7 @@ const TransactionsPageClient = ({
       categoryId: null,
       startDate: null,
       endDate: null,
+      accountId: "ALL",
     });
   };
 
@@ -253,6 +260,9 @@ const TransactionsPageClient = ({
       console.log("Category id filteroptions", filterOptions.categoryId);
       result = result?.filter((t) => t.categoryId === filterOptions.categoryId);
     }
+    if (filterOptions.accountId && filterOptions.accountId !== "ALL") {
+      result = result?.filter((t) => t.accountId === filterOptions.accountId);
+    }
     return result;
   }, [
     filterOptions.categoryId,
@@ -260,6 +270,7 @@ const TransactionsPageClient = ({
     filterOptions.searchTerm,
     filterOptions.startDate,
     filterOptions.type,
+    filterOptions.accountId,
     categories,
   ]);
 
@@ -284,6 +295,27 @@ const TransactionsPageClient = ({
         text: `Due in ${daysLeft} day${daysLeft > 1 ? "s" : ""}`,
       };
     } else return null;
+  };
+
+  const handleDownloadTransactionsData = async () => {
+    try {
+      setIsExportingTransactionsData(true);
+      const res = await axios.post("/api/exports/transactions", filterOptions, {
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "transactions.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.log("Download failed", error);
+    } finally {
+      setIsExportingTransactionsData(false);
+    }
   };
 
   return (
@@ -425,6 +457,30 @@ const TransactionsPageClient = ({
                 ) : null}
               </select>
             </div>
+            <div>
+              <label
+                htmlFor="accountId"
+                className="block text-sm font-medium text-gray-900 mb-1"
+              >
+                Account
+              </label>
+              <select
+                id="accountId"
+                name="accountId"
+                value={filterOptions.accountId || ""}
+                onChange={(e) =>
+                  handleFilterChange("accountId", e.target.value)
+                }
+                className={`input`}
+              >
+                <option value={"ALL"}>All Accounts</option>
+                {accounts?.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.accountName}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex justify-end md:col-span-2 lg:col-span-4">
               <button
                 className="flex items-center btn-outline"
@@ -436,6 +492,19 @@ const TransactionsPageClient = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Export Transactions */}
+
+      <div className="flex justify-start sm:justify-end my-5">
+        <button
+          className="btn-outline flex items-center px-3 py-2 text-xs"
+          onClick={handleDownloadTransactionsData}
+          disabled={isExportingTransactionsData}
+        >
+          <Download size={18} className="mr-1" />
+          Download Transactions
+        </button>
       </div>
 
       {/* Transactions Table */}

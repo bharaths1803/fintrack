@@ -31,10 +31,7 @@ export async function getRecentTransactions() {
       take: 10,
     });
 
-    const serializedTransactions = transactions.map((t) => ({
-      ...t,
-      amount: t.amount.toNumber(),
-    }));
+    const serializedTransactions = transactions.map(serializeTransaction);
 
     return serializedTransactions;
   } catch (error) {
@@ -101,12 +98,16 @@ export async function getMonthlyBudgets() {
   }
 }
 
-export async function getDashboardData(month: number = -1, year: number = -1) {
+export async function getDashboardData(
+  month: number = -1,
+  year: number = -1,
+  accountId: string | null
+) {
   try {
     const userId = await getDbUserId();
     if (!userId) return;
 
-    const transactions = await prisma.transaction.findMany({
+    let transactions = await prisma.transaction.findMany({
       where: {
         userId,
       },
@@ -114,11 +115,16 @@ export async function getDashboardData(month: number = -1, year: number = -1) {
         amount: true,
         type: true,
         date: true,
+        accountId: true,
       },
     });
 
     let income = 0,
       expense = 0;
+
+    if (accountId && accountId !== "ALL") {
+      transactions = transactions.filter((t) => t.accountId === accountId);
+    }
 
     transactions.forEach((t) => {
       const date = new Date(t.date);
@@ -150,13 +156,14 @@ export async function getDashboardData(month: number = -1, year: number = -1) {
 
 export async function getExpensesChartData(
   month: number = -1,
-  year: number = -1
+  year: number = -1,
+  accountId: string | null
 ) {
   try {
     const userId = await getDbUserId();
     if (!userId) return;
 
-    const transactions = await prisma.transaction.findMany({
+    let transactions = await prisma.transaction.findMany({
       where: {
         userId,
       },
@@ -165,8 +172,13 @@ export async function getExpensesChartData(
         type: true,
         date: true,
         category: true,
+        accountId: true,
       },
     });
+
+    if (accountId && accountId !== "ALL") {
+      transactions = transactions.filter((t) => t.accountId === accountId);
+    }
 
     let expenses: { [key: string]: number } = {};
 
@@ -200,15 +212,12 @@ export async function getExpensesChartData(
   }
 }
 
-export async function getExpenseVsIncomeChartData(
-  month: number = -1,
-  year: number = -1
-) {
+export async function getExpenseVsIncomeChartData(accountId: string | null) {
   try {
     const userId = await getDbUserId();
     if (!userId) return;
 
-    const transactions = await prisma.transaction.findMany({
+    let transactions = await prisma.transaction.findMany({
       where: {
         userId,
       },
@@ -216,11 +225,16 @@ export async function getExpenseVsIncomeChartData(
         amount: true,
         type: true,
         date: true,
+        accountId: true,
       },
       orderBy: {
         date: "asc",
       },
     });
+
+    if (accountId && accountId !== "ALL") {
+      transactions = transactions.filter((t) => t.accountId === accountId);
+    }
 
     let dataMap: { [key: string]: { income: number; expense: number } } = {};
 
