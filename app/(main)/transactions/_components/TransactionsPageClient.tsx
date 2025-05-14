@@ -10,6 +10,7 @@ import {
   createTransaction,
   deleteTransaction,
   getTransactions,
+  scanReciept,
   updateTransaction,
 } from "../../../../actions/transaction.action";
 import { FilterOptions, TransactionWithCategory } from "../../../../types";
@@ -24,12 +25,13 @@ import {
   Loader,
   Plus,
   Repeat,
+  Scan,
   Search,
   Trash2,
   TrendingUp,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { getAccounts } from "../../../../actions/account.action";
 import axios from "axios";
@@ -55,10 +57,14 @@ const TransactionsPageClient = ({
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isScanningReceipt, setIsScanningReceipt] = useState<boolean>(false);
+
   const [isExportingTransactionsData, setIsExportingTransactionsData] =
     useState<boolean>(false);
   const [deletingTransaction, setDeletingTransaction] =
     useState<TransactionWithCategory | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [formData, setFormData] = useState<Omit<TransactionWithCategory, "id">>(
     {
@@ -315,6 +321,50 @@ const TransactionsPageClient = ({
       console.log("Download failed", error);
     } finally {
       setIsExportingTransactionsData(false);
+    }
+  };
+
+  const handleUploadReciept = () => {
+    if (fileInputRef && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleReceiptScan = async (file: File) => {
+    try {
+      setIsScanningReceipt(true);
+      if (file.size > 1024 * 1024 * 5) {
+        toast.error("File size should be less than 5MB");
+        return;
+      }
+      const res = await scanReciept(file);
+      if (res) {
+        console.log(
+          "Response from ai type is",
+          res.amount,
+          res.date,
+          res.description
+        );
+
+        setFormData((prev) => ({
+          ...prev,
+          amount: res.amount,
+          date: new Date(res.date),
+          note: res.description,
+          type: res.type,
+        }));
+        console.log(
+          "Form data types is",
+          formData.amount,
+          formData.date,
+          formData.note
+        );
+        toast.success("Scanned receipt successfully");
+      }
+    } catch (error) {
+      console.log("Error scanning ", error);
+    } finally {
+      setIsScanningReceipt(false);
     }
   };
 
@@ -684,8 +734,33 @@ const TransactionsPageClient = ({
                   <X size={20} />
                 </button>
               </div>
-
               <form className="p-4 space-y-4" onSubmit={handleSubmit}>
+                {!showEditModal && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      capture="environment"
+                      ref={fileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleReceiptScan(file);
+                      }}
+                    />
+                    <button
+                      className={`btn-primary w-full p-2 flex items-center justify-center ${isScanningReceipt ? "bg-primary-400" : ""}`}
+                      type="button"
+                      onClick={handleUploadReciept}
+                      disabled={isScanningReceipt}
+                    >
+                      <Scan size={18} className="mr-2" />
+                      {isScanningReceipt
+                        ? "Scanning..."
+                        : "Scan Transaction Receipt"}
+                    </button>
+                  </div>
+                )}
                 <div>
                   <label
                     htmlFor="note"

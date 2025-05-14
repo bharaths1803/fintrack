@@ -4,6 +4,9 @@ import { TransactionWithCategory } from "../types";
 import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
 import { prisma } from "../lib/prisma";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const serializeTransaction = (obj: any) => {
   return { ...obj, amount: obj.amount.toNumber() };
@@ -226,6 +229,64 @@ export async function updateTransaction(data: TransactionWithCategory) {
     return { success: false, error };
   }
 }
+
+export async function scanReciept(file: File) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const arrayBuffer = await file.arrayBuffer();
+    const base64String = Buffer.from(arrayBuffer).toString("base64");
+
+    const prompt = `
+      Analyze this receipt image and extract the following information in JSON format:
+      - Total amount (just the number)
+      - Date (in ISO format)
+      - Description or items purchased (brief summary)
+      - Type (INCOME/EXPENSE)
+      
+      Only respond with valid JSON in this exact format:
+      {
+        "amount": number,
+        "date": "ISO date string",
+        "description": "string",
+        "type": "string",
+      }
+
+      If its not a recipt, return an empty object
+    `;
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: base64String,
+          mimeType: file.type,
+        },
+      },
+      prompt,
+    ]);
+
+    const response = await result.response;
+    const text = response.text();
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+
+    try {
+      const data = JSON.parse(cleanedText);
+      return {
+        amount: data.amount,
+        date: data.date,
+        description: data.description,
+        type: data.type,
+      };
+    } catch (error) {
+      console.log("Error parsing JSON response");
+      throw new Error("Invalid json format from gemini");
+    }
+  } catch (error) {
+    console.log("Error scanning reciept", error);
+    throw new Error("Failed to scan reciept");
+  }
+}
+
+// Utility functions
 
 function calculateNextRecurringDate(startDate: Date, interval: string) {
   const date = new Date(startDate);

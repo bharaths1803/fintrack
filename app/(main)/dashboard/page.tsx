@@ -8,6 +8,7 @@ import {
 import React from "react";
 import DashboardPageClient from "./_components/DashboardPageClient";
 import { getAccounts } from "../../../actions/account.action";
+import { syncUser } from "../../../lib/syncUser";
 
 const DashboardPage = async () => {
   const recentTransactions = await getRecentTransactions();
@@ -19,6 +20,7 @@ const DashboardPage = async () => {
   const expensesChartData = await getExpensesChartData(month, year, null);
   const incomeVsExpenseData = await getExpenseVsIncomeChartData(null);
   const accounts = await getAccounts();
+  const user = await syncUser();
 
   return (
     <DashboardPageClient
@@ -28,6 +30,7 @@ const DashboardPage = async () => {
       expensesChartData={expensesChartData}
       incomeVsExpenseData={incomeVsExpenseData}
       accounts={accounts}
+      financialJoke={user?.financialJoke || ""}
     />
   );
 };

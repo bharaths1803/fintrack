@@ -1,6 +1,8 @@
 import { serve } from "inngest/next";
 import {
   generateDueReminders,
+  generateFinancialJokes,
+  generateMonthlyReports,
   helloWorld,
   processRecurringTransactions,
   triggerRecurringTransactions,
@@ -16,5 +18,7 @@ export const { GET, POST, PUT } = serve({
     processRecurringTransactions,
     triggerRecurringTransactions,
     generateDueReminders,
+    generateMonthlyReports,
+    generateFinancialJokes,
   ],
 });

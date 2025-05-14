@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.18.1",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.7.0",
     "@react-email/components": "^0.0.39",
     "axios": "^1.9.0",

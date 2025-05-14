@@ -1,7 +1,10 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { sendEmail } from "../../actions/emails.action";
 import EmailTemplate from "../../emails/Template";
 import { prisma } from "../prisma";
 import { inngest } from "./client";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Hello World Sample Function
 
@@ -183,14 +186,16 @@ export const generateDueReminders = inngest.createFunction(
           })
         );
 
-        await sendEmail({
-          to: user.email,
-          subject: "Upcoming Transactions Reminder",
-          react: EmailTemplate({
-            userName: user.name,
-            data: dueFromTodayTransactions,
-          }),
-        });
+        if (dueFromTodayTransactions && dueFromTodayTransactions.length > 0)
+          await sendEmail({
+            to: user.email,
+            subject: "Upcoming Transactions Reminder",
+            react: EmailTemplate({
+              userName: user.name,
+              data: dueFromTodayTransactions,
+              type: "due-reminders",
+            }),
+          });
       });
     }
 
@@ -205,3 +210,142 @@ function calculateDueText(days: number) {
   else ans += `in ${days} days`;
   return ans;
 }
+
+// Monthly Budget Alerts
+
+export const generateMonthlyReports = inngest.createFunction(
+  {
+    id: "generate-budget-alert",
+    name: "Generate Budget Alert",
+  },
+  { cron: "0 */6 * * *" }, // Every 6 hours
+  async ({ step }) => {
+    const today = new Date();
+    const users = await prisma.user.findMany({
+      include: {
+        budgets: {
+          where: {
+            month: today.getMonth(),
+            year: today.getFullYear(),
+          },
+          include: {
+            category: true,
+          },
+        },
+        transactions: {
+          where: {
+            type: "EXPENSE",
+          },
+          select: {
+            amount: true,
+            date: true,
+            categoryId: true,
+          },
+        },
+      },
+    });
+
+    for (const user of users) {
+      await step.run(`generate-budget-alert-${user.id}`, async () => {
+        let budgetSums = user.budgets.map((budget) => {
+          const totalSpent = user.transactions
+            .filter((tx) => {
+              const txDate = new Date(tx.date);
+              return (
+                tx.categoryId === budget.categoryId &&
+                txDate.getFullYear() === budget.year &&
+                txDate.getMonth() === budget.month
+              );
+            })
+            .reduce((s, tx) => s + Number(tx.amount), 0);
+
+          const remaining = budget.amount.toNumber() - totalSpent;
+          const percentageSpent = Math.min(
+            Math.round((totalSpent / budget.amount.toNumber()) * 100),
+            100
+          );
+
+          return {
+            budgetId: budget.id,
+            category: budget.category?.name,
+            totalSpent,
+            amount: budget.amount.toNumber(),
+            percentageSpent,
+            remaining,
+            lastAlertSent: budget.lastAlertSent,
+          };
+        });
+
+        budgetSums = budgetSums.filter((b) => {
+          const lastAlertSentDate = new Date(b.lastAlertSent || "");
+          return (
+            b.percentageSpent >= 90 &&
+            (!b.lastAlertSent ||
+              lastAlertSentDate.getFullYear() !== today.getFullYear() ||
+              lastAlertSentDate.getMonth() !== today.getMonth())
+          );
+        });
+
+        if (budgetSums && budgetSums.length > 0)
+          await sendEmail({
+            to: user.email,
+            subject: "Monthly Budgets Alert",
+            react: EmailTemplate({
+              userName: user.name,
+              data: budgetSums,
+              type: "budgets-alert",
+            }),
+          });
+
+        budgetSums.forEach(async (b) => {
+          await prisma.budget.update({
+            where: {
+              id: b.budgetId,
+            },
+            data: {
+              lastAlertSent: today,
+            },
+          });
+        });
+      });
+    }
+  }
+);
+
+// Generate Financial Jokes
+
+export const generateFinancialJokes = inngest.createFunction(
+  {
+    id: "generate-financial-jokes",
+    name: "Generate Financial Jokes",
+  },
+  { cron: "0 0 * * *" },
+  async ({ step }) => {
+    const users = await prisma.user.findMany({});
+
+    for (const user of users) {
+      await step.run(`generate-financial-jokes-${user.id}`, async () => {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `Give a unique joke related to managing personal finances in 2 or 3 lines in string format without any qoutes(just plain string, e.g. I am a boy).`;
+
+        const result = await model.generateContent(prompt);
+
+        const response = await result.response;
+        const text = response.text();
+        const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+
+        await prisma.user.update({
+          where: {
+            id: user.id,
+          },
+          data: {
+            financialJoke: cleanedText,
+          },
+        });
+      });
+    }
+
+    return { processed: users.length };
+  }
+);

@@ -27,6 +27,7 @@ model User {
   categories    Category[]
   budgets       Budget[]
   accounts      Account[]
+  financialJoke String?
 
   @@map("users")
 }
@@ -75,10 +76,11 @@ model Category {
 }
 
 model Budget {
-  id     String  @id @default(uuid())
-  month  Int
-  year   Int
-  amount Decimal
+  id            String    @id @default(uuid())
+  month         Int
+  year          Int
+  amount        Decimal
+  lastAlertSent DateTime?
 
   User   User?   @relation(fields: [userId], references: [id])
   userId String?

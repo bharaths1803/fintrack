@@ -15,38 +15,82 @@ import * as React from "react";
 interface EmailTemplateProps {
   userName: string;
   data: any;
+  type: string;
 }
 
-export default function EmailTemplate({ userName, data }: EmailTemplateProps) {
-  return (
-    <Html>
-      <Head />
-      <Preview>Upcoming Transactions Reminder</Preview>
-      <Body style={styles.body}>
-        <Container style={styles.container}>
-          <Heading style={styles.title}>Upcoming Transactions Reminder</Heading>
-          <Text style={styles.text}>Hello {userName},</Text>
-          <Text style={styles.text}>
-            You have the following transactions on due
-          </Text>
-          <Section style={styles.statsContainer}>
-            {data.map((t: any, idx: number) => (
-              <div style={styles.stat} key={idx}>
-                <Text style={styles.text}>
-                  {t.categoryName} (${t.amount})
-                </Text>
-                <Text style={styles.heading}>{t.text}</Text>
-              </div>
-            ))}
+export default function EmailTemplate({
+  userName,
+  data,
+  type,
+}: EmailTemplateProps) {
+  if (type === "due-reminders") {
+    return (
+      <Html>
+        <Head />
+        <Preview>Upcoming Transactions Reminder</Preview>
+        <Body style={styles.body}>
+          <Container style={styles.container}>
+            <Heading style={styles.title}>
+              Upcoming Transactions Reminder
+            </Heading>
+            <Text style={styles.text}>Hello {userName},</Text>
             <Text style={styles.text}>
-              Please review and mark them as completed if already paid.
+              You have the following transactions on due
             </Text>
-          </Section>
-          <Link href="http://localhost:3000/dashboard">[Open Dashboard]</Link>
-        </Container>
-      </Body>
-    </Html>
-  );
+            <Section style={styles.statsContainer}>
+              {data.map((t: any, idx: number) => (
+                <div style={styles.stat} key={idx}>
+                  <Text style={styles.text}>
+                    {t.categoryName} (${t.amount})
+                  </Text>
+                  <Text style={styles.heading}>{t.text}</Text>
+                </div>
+              ))}
+              <Text style={styles.text}>
+                Please review and mark them as completed if already paid.
+              </Text>
+            </Section>
+            <Link href="http://localhost:3000/dashboard">[Open Dashboard]</Link>
+          </Container>
+        </Body>
+      </Html>
+    );
+  }
+
+  if (type === "budgets-alert") {
+    return (
+      <Html>
+        <Head />
+        <Preview>Monthly Budgets Alert</Preview>
+        <Body style={styles.body}>
+          <Container style={styles.container}>
+            <Heading style={styles.title}>Monthly Budgets Alert</Heading>
+            <Text style={styles.text}>Hello {userName},</Text>
+            <Text style={styles.text}>
+              You have used more than 90% of the following budgets
+            </Text>
+            <Section style={styles.statsContainer}>
+              {data.map((b: any, idx: number) => (
+                <div style={styles.stat} key={idx}>
+                  <div style={styles.heading}>Budget Category:{b.category}</div>
+                  <div style={styles.text}>Budget Amount:${b.amount}</div>
+                  <div style={styles.text}>Spent so far:${b.totalSpent}</div>
+                  <div style={styles.text}>
+                    {b.remaining >= 0 ? "Remaining" : "Over Budget"}: $
+                    {b.remaining >= 0 ? b.remaining : Math.abs(b.remaining)}
+                  </div>
+                  <div style={styles.text}>
+                    Percentage Spent:{b.percentageSpent.toFixed(1)}%
+                  </div>
+                </div>
+              ))}
+            </Section>
+            <Link href="http://localhost:3000/dashboard">[Open Dashboard]</Link>
+          </Container>
+        </Body>
+      </Html>
+    );
+  }
 }
 
 const styles = {

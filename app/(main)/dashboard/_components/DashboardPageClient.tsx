@@ -15,6 +15,7 @@ import {
   BarChartIcon,
   DollarSign,
   PieChartIcon,
+  Quote,
   Repeat,
   TrendingUp,
 } from "lucide-react";
@@ -57,6 +58,7 @@ interface DashboardPageClientProps {
   expensesChartData: ExpensesChartData;
   incomeVsExpenseData: IncomeVsExpenseData;
   accounts: Accounts;
+  financialJoke: string | null;
 }
 
 const DashboardPageClient = ({
@@ -66,6 +68,7 @@ const DashboardPageClient = ({
   expensesChartData,
   incomeVsExpenseData,
   accounts,
+  financialJoke,
 }: DashboardPageClientProps) => {
   const [dataFilterType, setDataFilterType] = useState<string>("MONTHLY");
   const [dashboardDataLocal, setDashboardDataLocal] =
@@ -165,6 +168,20 @@ const DashboardPageClient = ({
         <p className="text-sm text-gray-500 mt-1 sm:mt-0">
           {format(new Date(), "EEEE, MMMM do yyyy")}
         </p>
+      </div>
+
+      <div className="my-4 card p-6 bg-gradient-to-br from-primary-50 to-secondary-50">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-full bg-primary-100 text-primary-600">
+            <Quote size={24} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Fintrack's AI joke
+            </h3>
+            <p className="text-primary-600 font-medium">{financialJoke}</p>
+          </div>
+        </div>
       </div>
 
       {/* Data Filtering */}
