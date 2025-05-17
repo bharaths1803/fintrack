@@ -5,7 +5,6 @@ import { getBudgets } from "../../../actions/budget.action";
 import { getCategories } from "../../../actions/categories.action";
 
 const BudgetPage = async () => {
-  const dbUserId = await getDbUserId();
   const budgets = await getBudgets();
   let categories = await getCategories();
   categories = categories?.filter((cat) => cat.type === "EXPENSE");

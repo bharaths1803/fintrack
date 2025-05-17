@@ -213,7 +213,7 @@ function calculateDueText(days: number) {
 
 // Monthly Budget Alerts
 
-export const generateMonthlyReports = inngest.createFunction(
+export const generateBudgetAlerts = inngest.createFunction(
   {
     id: "generate-budget-alert",
     name: "Generate Budget Alert",
@@ -221,28 +221,30 @@ export const generateMonthlyReports = inngest.createFunction(
   { cron: "0 */6 * * *" }, // Every 6 hours
   async ({ step }) => {
     const today = new Date();
-    const users = await prisma.user.findMany({
-      include: {
-        budgets: {
-          where: {
-            month: today.getMonth(),
-            year: today.getFullYear(),
+    const users = await step.run("fetch-users", async () => {
+      return await prisma.user.findMany({
+        include: {
+          budgets: {
+            where: {
+              month: today.getMonth(),
+              year: today.getFullYear(),
+            },
+            include: {
+              category: true,
+            },
           },
-          include: {
-            category: true,
+          transactions: {
+            where: {
+              type: "EXPENSE",
+            },
+            select: {
+              amount: true,
+              date: true,
+              categoryId: true,
+            },
           },
         },
-        transactions: {
-          where: {
-            type: "EXPENSE",
-          },
-          select: {
-            amount: true,
-            date: true,
-            categoryId: true,
-          },
-        },
-      },
+      });
     });
 
     for (const user of users) {
@@ -259,9 +261,9 @@ export const generateMonthlyReports = inngest.createFunction(
             })
             .reduce((s, tx) => s + Number(tx.amount), 0);
 
-          const remaining = budget.amount.toNumber() - totalSpent;
+          const remaining = Number(budget.amount) - totalSpent;
           const percentageSpent = Math.min(
-            Math.round((totalSpent / budget.amount.toNumber()) * 100),
+            Math.round((totalSpent / Number(budget.amount)) * 100),
             100
           );
 
@@ -269,7 +271,7 @@ export const generateMonthlyReports = inngest.createFunction(
             budgetId: budget.id,
             category: budget.category?.name,
             totalSpent,
-            amount: budget.amount.toNumber(),
+            amount: Number(budget.amount),
             percentageSpent,
             remaining,
             lastAlertSent: budget.lastAlertSent,
@@ -321,7 +323,9 @@ export const generateFinancialJokes = inngest.createFunction(
   },
   { cron: "0 0 * * *" },
   async ({ step }) => {
-    const users = await prisma.user.findMany({});
+    const users = await step.run("fetch-users", async () => {
+      return await prisma.user.findMany();
+    });
 
     for (const user of users) {
       await step.run(`generate-financial-jokes-${user.id}`, async () => {
@@ -347,5 +351,230 @@ export const generateFinancialJokes = inngest.createFunction(
     }
 
     return { processed: users.length };
+  }
+);
+
+// Generate Monthly Financial Insights
+
+export const generateMonthlyReports = inngest.createFunction(
+  {
+    id: "generate-monthly-reports",
+    name: "Generate Monthly Reports",
+  },
+  { cron: "0 0 1 * *" },
+  async ({ step }) => {
+    const lastMonth = new Date();
+    lastMonth.setDate(lastMonth.getMonth() - 1);
+    const lastMonthName = lastMonth.toLocaleString("default", {
+      month: "long",
+    });
+
+    const prevMonthStartDate = new Date(
+      lastMonth.getFullYear(),
+      lastMonth.getMonth(),
+      1
+    );
+    const prevMonthEndDate = new Date(
+      lastMonth.getFullYear(),
+      lastMonth.getMonth() + 1,
+      0
+    );
+
+    const users = await step.run("fetch-users", async () => {
+      return await prisma.user.findMany({
+        include: {
+          transactions: {
+            where: {
+              date: {
+                gte: prevMonthStartDate,
+                lte: prevMonthEndDate,
+              },
+            },
+            select: {
+              date: true,
+              type: true,
+              amount: true,
+              note: true,
+              categoryId: true,
+              isRecurring: true,
+              nextRecurringDate: true,
+              recurringInterval: true,
+              account: {
+                select: {
+                  accountName: true,
+                  id: true,
+                },
+              },
+              category: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          budgets: {
+            where: {
+              month: Number(lastMonth.getMonth()),
+              year: Number(lastMonth.getFullYear()),
+            },
+            select: {
+              month: true,
+              year: true,
+              amount: true,
+              categoryId: true,
+              category: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    for (const user of users) {
+      await step.run(`generate-report-${user.id}`, async () => {
+        const summary = user.transactions.reduce(
+          (s, t) => {
+            if (t.type === "EXPENSE") {
+              s.totalExpenses += Number(t.amount);
+            } else {
+              s.totalIncome += Number(t.amount);
+            }
+
+            return s;
+          },
+          {
+            totalIncome: 0,
+            totalExpenses: 0,
+            cashFlow: "",
+            netSavings: 0,
+            netLoss: 0,
+          }
+        );
+        const netAmount = summary.totalIncome - summary.totalExpenses;
+        summary.cashFlow = netAmount >= 0 ? "positive" : "negative";
+        summary.netSavings = netAmount >= 0 ? netAmount : 0;
+        summary.netLoss = netAmount < 0 ? Math.abs(netAmount) : 0;
+
+        const totalBudgetedAmount = user.budgets.reduce((s, b) => {
+          return s + Number(b.amount);
+        }, 0);
+
+        const budgetSums = user.budgets.map((b) => {
+          const totalSpent = user.transactions
+            .filter((t) => t.categoryId === b.categoryId)
+            .reduce((s, t) => {
+              return s + Number(t.amount);
+            }, 0);
+          return {
+            category: b.category?.name,
+            budgeted: b.amount,
+            actual: totalSpent,
+            percentageOfTotal: (
+              (totalSpent / totalBudgetedAmount) *
+              100
+            ).toFixed(2),
+          };
+        });
+
+        const monthlyTransactions = user.transactions.map((t) => {
+          return {
+            date: new Date(t.date),
+            type: t.type,
+            category: t.category.name,
+            account: t.account?.accountName,
+            description: t.note,
+            amount: t.amount,
+          };
+        });
+
+        let accounts: {
+          [key: string]: {
+            accountName: string;
+            totalInflow: number;
+            totalOutflow: number;
+          };
+        } = {};
+
+        user.transactions.forEach((t) => {
+          if (!accounts[t.account?.id || ""])
+            accounts[t.account?.id || ""] = {
+              accountName: t.account?.accountName || "",
+              totalInflow: 0,
+              totalOutflow: 0,
+            };
+
+          if (t.type === "EXPENSE")
+            accounts[t.account?.id || ""].totalOutflow += Number(t.amount);
+          else accounts[t.account?.id || ""].totalInflow += Number(t.amount);
+        });
+
+        const accountsArray = Object.keys(accounts).map((accId) => {
+          return {
+            accountName: accounts[accId].accountName,
+            totalInflow: accounts[accId].totalInflow,
+            totalOutflow: accounts[accId].totalOutflow,
+          };
+        });
+
+        const recurringExpenses = user.transactions
+          .filter((t) => {
+            if (!t.isRecurring) return false;
+            if (
+              t.isRecurring &&
+              new Date(t.nextRecurringDate || "") <= prevMonthEndDate
+            )
+              return true;
+            return false;
+          })
+          .map((t) => {
+            return {
+              description: t.note,
+              amount: t.amount,
+              category: t.category.name,
+              date: t.date,
+            };
+          });
+
+        const data = {
+          month: lastMonthName,
+          year: Number(lastMonth.getFullYear()),
+          summary,
+          categoryBreakdown: budgetSums,
+          transactions: monthlyTransactions,
+          accounts: accountsArray,
+          recurringExpenses,
+        };
+
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `
+    Analyze this financial data and provide detailed, actionable insights.
+    Focus on spending patterns and practical advice.
+    Keep it friendly and conversational.
+    Financial Data for last month:
+    ${JSON.stringify(data, null, 2)}
+    Format the response as a JSON array of strings, like this:
+    ["insight 1", "insight 2", "insight 3"]
+  `;
+        const result = await model.generateContent(prompt);
+
+        const response = await result.response;
+        const text = response.text();
+        const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+
+        await sendEmail({
+          to: user.email,
+          subject: "Monthly Financial Report",
+          react: EmailTemplate({
+            userName: user.name,
+            data: JSON.parse(cleanedText),
+            type: "financial-report",
+          }),
+        });
+      });
+    }
   }
 );

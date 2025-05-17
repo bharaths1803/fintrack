@@ -21,7 +21,6 @@ interface CategoriesPageClientProps {
 const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(
@@ -45,7 +44,6 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
         type: category.type,
         iconUrl: category.iconUrl,
       });
-      setShowEditModal(true);
       setEditingCategoryId(category.id);
     } else {
       setFormData({
@@ -61,8 +59,6 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setShowEditModal(false);
-
     setFormErrors({});
   };
 
@@ -89,6 +85,9 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
     if (!formData.iconUrl) {
       errors.iconUrl = "Icon is required.";
     }
+    if (!formData.type) {
+      errors.type = "Type is required";
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -99,13 +98,16 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
 
     try {
       setIsSubmitting(true);
-      if (showEditModal)
-        await updateCategory({ ...formData, id: editingCategoryId });
-      else await createCategory(formData);
+      let res;
+      if (editingCategoryId)
+        res = await updateCategory({ ...formData, id: editingCategoryId });
+      else res = await createCategory(formData);
       handleCloseModal();
-      toast.success(
-        `${editingCategoryId ? "Edited" : "Added"} category successfully!`
-      );
+      if (res?.success)
+        toast.success(
+          `${editingCategoryId ? "Edited" : "Added"} category successfully!`
+        );
+      else throw new Error(res?.error as string);
       setEditingCategoryId("");
     } catch (error) {
       toast.error(`Failed to ${editingCategoryId ? "edit" : "add"} category!`);
@@ -127,9 +129,10 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
     if (!deletingCategory) return;
     try {
       setIsDeleting(true);
-      await deleteCategory(deletingCategory?.id);
+      const res = await deleteCategory(deletingCategory?.id);
       handleCloseDeleteModal();
-      toast.success("Deleted category successfully!");
+      if (res?.success) toast.success("Deleted category successfully!");
+      else throw new Error(res?.error as string);
     } catch (error) {
       toast.error("Failed to delete category!");
     } finally {
@@ -212,7 +215,7 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
             <div className="max-w-md bg-white rounded-lg shadow-xl w-full animate-scale z-50">
               <div className="flex justify-between items-center p-4 border-b border-gray-200">
                 <h2 className="text-gray-900 text-xl font-semibold">
-                  {showEditModal ? "Update Category" : "Add Category"}
+                  {editingCategoryId ? "Update Category" : "Add Category"}
                 </h2>
                 <button
                   className="text-gray-500 hover:text-gray-700"
@@ -308,7 +311,7 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
                 >
                   {isSubmitting ? (
                     <Loader size={18} className="animate-spin" />
-                  ) : showEditModal ? (
+                  ) : editingCategoryId ? (
                     "Update Category"
                   ) : (
                     "Add Category"

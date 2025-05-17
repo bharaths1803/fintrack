@@ -10,6 +10,7 @@ import {
 } from "../../../../actions/dashboard.action";
 import { addDays, format } from "date-fns";
 import {
+  AlertTriangleIcon,
   ArrowDownRight,
   ArrowUpRight,
   BarChartIcon,
@@ -169,6 +170,8 @@ const DashboardPageClient = ({
           {format(new Date(), "EEEE, MMMM do yyyy")}
         </p>
       </div>
+
+      {/* Financial Joke */}
 
       <div className="my-4 card p-6 bg-gradient-to-br from-primary-50 to-secondary-50">
         <div className="flex items-start gap-4">
@@ -335,7 +338,7 @@ const DashboardPageClient = ({
               <PieChartIcon size={18} className="text-gray-900" />
             </div>
           </div>
-          {expensesChartDataLocal && (
+          {expensesChartDataLocal && expensesChartDataLocal.length > 0 ? (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -364,6 +367,20 @@ const DashboardPageClient = ({
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          ) : (
+            <div className="p-4 bg-warning-50 rounded-md">
+              <div className="flex space-x-2 items-center">
+                <AlertTriangleIcon size={18} className="text-warning-500" />
+                <h3 className="font-medium text-sm text-warning-800">
+                  No Transactions
+                </h3>
+              </div>
+              <div className="mt-1">
+                <Link className="text-warning-700 mt-1" href={"/categories"}>
+                  Add your first first transaction
+                </Link>
+              </div>
+            </div>
           )}
         </div>
 
@@ -377,22 +394,38 @@ const DashboardPageClient = ({
               <BarChartIcon size={18} className="text-gray-900" />
             </div>
           </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={incomeVsExpenseDataLocal}
-                margin={{ top: 20, right: 30, bottom: 10, left: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="income" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expense" fill="#EF4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {incomeVsExpenseDataLocal && incomeVsExpenseDataLocal.length > 0 ? (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={incomeVsExpenseDataLocal}
+                  margin={{ top: 20, right: 30, bottom: 10, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="income" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="p-4 bg-warning-50 rounded-md">
+              <div className="flex space-x-2 items-center">
+                <AlertTriangleIcon size={18} className="text-warning-500" />
+                <h3 className="font-medium text-sm text-warning-800">
+                  No Transactions
+                </h3>
+              </div>
+              <div className="mt-1">
+                <Link className="text-warning-700 mt-1" href={"/categories"}>
+                  Add your first first transaction
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -413,9 +446,9 @@ const DashboardPageClient = ({
 
         {recentTransactions?.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="py-8 text-center">
+            <div className="py-8 text-center space-y-3">
               <p className="text-gray-500">No Transactions found</p>
-              <Link className="btn-primary mt-4" href={"/transactions"}>
+              <Link className="btn-primary" href={"/transactions"}>
                 Add your first transaction
               </Link>
             </div>
@@ -562,9 +595,9 @@ const DashboardPageClient = ({
 
         {monthlyBudgets?.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="py-8 text-center">
+            <div className="py-8 text-center space-y-3">
               <p className="text-gray-500">No budgets found</p>
-              <Link className="btn-primary mt-4" href={"/budgets"}>
+              <Link className="btn-primary" href={"/budgets"}>
                 Add your first budget
               </Link>
             </div>

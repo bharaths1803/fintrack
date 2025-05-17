@@ -33,7 +33,6 @@ interface AccountsPageClientProps {
 const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
@@ -58,7 +57,6 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
         isDefault: account.isDefault,
       });
       setIsDefaultAccount(account.isDefault);
-      setShowEditModal(true);
       setEditingAccountId(account.id);
     } else {
       setFormData({
@@ -74,7 +72,6 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setShowEditModal(false);
     setFormErrors({});
   };
 
@@ -120,13 +117,16 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
         ...formData,
       };
       formValues.currentBalance = Number(formValues.currentBalance);
-      if (showEditModal)
-        await updateAccount({ ...formValues, id: editingAccountId });
-      else await createAccount(formValues);
+      let res;
+      if (editingAccountId)
+        res = await updateAccount({ ...formValues, id: editingAccountId });
+      else res = await createAccount(formValues);
       handleCloseModal();
-      toast.success(
-        `${editingAccountId ? "Edited" : "Added"} account successfully!`
-      );
+      if (res?.success)
+        toast.success(
+          `${editingAccountId ? "Edited" : "Added"} account successfully!`
+        );
+      else throw new Error(res?.error as string);
       setEditingAccountId("");
     } catch (error) {
       toast.error(`Failed to ${editingAccountId ? "edit" : "add"} account!`);
@@ -148,9 +148,10 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
     if (!deletingAccount) return;
     try {
       setIsDeleting(true);
-      await deleteAccount(deletingAccount?.id);
+      const res = await deleteAccount(deletingAccount?.id);
       handleCloseDeleteModal();
-      toast.success("Deleted transaction successfully!");
+      if (res?.success) toast.success("Deleted transaction successfully!");
+      else throw new Error(res?.error as string);
     } catch (error) {
       toast.error("Failed to delete transaction!");
     } finally {
@@ -204,7 +205,7 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
             <div className="max-w-md bg-white rounded-lg shadow-xl w-full animate-scale z-50">
               <div className="flex justify-between items-center p-4 border-b border-gray-200">
                 <h2 className="text-gray-900 text-xl font-semibold">
-                  {showEditModal ? "Update Account" : "Add Account"}
+                  {editingAccountId ? "Update Account" : "Add Account"}
                 </h2>
                 <button
                   className="text-gray-500 hover:text-gray-700"
@@ -297,7 +298,7 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
                 >
                   {isSubmitting ? (
                     <Loader size={18} className="animate-spin" />
-                  ) : showEditModal ? (
+                  ) : editingAccountId ? (
                     "Update Account"
                   ) : (
                     "Add Account"
@@ -317,8 +318,14 @@ const AccountsPageClient = ({ accounts }: AccountsPageClientProps) => {
           onClick={handleDownloadAccountsData}
           disabled={isExportingAccountsData}
         >
-          <Download size={18} className="mr-1" />
-          Export excel
+          {isExportingAccountsData ? (
+            <Loader className="animate-spin flex-1" size={18} />
+          ) : (
+            <>
+              <Download size={18} className="mr-1" />
+              Export excel
+            </>
+          )}
         </button>
       </div>
 

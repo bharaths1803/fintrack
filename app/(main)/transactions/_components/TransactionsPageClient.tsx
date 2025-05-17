@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  updateCategory,
-  createCategory,
-  deleteCategory,
-  getCategories,
-} from "../../../../actions/categories.action";
+import { getCategories } from "../../../../actions/categories.action";
 import {
   createTransaction,
   deleteTransaction,
@@ -16,6 +11,7 @@ import {
 import { FilterOptions, TransactionWithCategory } from "../../../../types";
 import { addDays, format } from "date-fns";
 import {
+  AlertTriangleIcon,
   ArrowDownRight,
   ArrowUpRight,
   Check,
@@ -28,13 +24,14 @@ import {
   Scan,
   Search,
   Trash2,
-  TrendingUp,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { getAccounts } from "../../../../actions/account.action";
 import axios from "axios";
+import Link from "next/link";
+import Pagination from "./Pagination";
 
 type Transactions = Awaited<ReturnType<typeof getTransactions>>;
 type Categories = Awaited<ReturnType<typeof getCategories>>;
@@ -46,6 +43,8 @@ interface TransactionsPageClientProps {
   accounts: Accounts;
 }
 
+const pageSize = 10;
+
 const TransactionsPageClient = ({
   transactions,
   categories,
@@ -54,10 +53,10 @@ const TransactionsPageClient = ({
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isScanningReceipt, setIsScanningReceipt] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [isExportingTransactionsData, setIsExportingTransactionsData] =
     useState<boolean>(false);
@@ -72,9 +71,10 @@ const TransactionsPageClient = ({
       amount: 0.0,
       note: "",
       date: new Date(),
-      categoryId: categories?.[0].id || "",
+      categoryId: categories?.[0]?.id || "",
       isRecurring: false,
       isCompleted: true,
+      accountId: accounts?.[0]?.id || "",
     }
   );
 
@@ -106,7 +106,6 @@ const TransactionsPageClient = ({
         reminderDays: transaction.reminderDays,
         accountId: transaction.accountId,
       });
-      setShowEditModal(true);
       setEditingTransactionId(transaction.id);
     } else {
       setFormData({
@@ -114,10 +113,10 @@ const TransactionsPageClient = ({
         amount: 0.0,
         note: "",
         date: new Date(),
-        categoryId: "",
+        categoryId: filteredCategories?.[0]?.id || "",
         isRecurring: false,
         isCompleted: true,
-        accountId: accounts?.[0].id,
+        accountId: accounts?.[0]?.id || "",
       });
       setEditingTransactionId("");
     }
@@ -127,7 +126,6 @@ const TransactionsPageClient = ({
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setShowEditModal(false);
     setFormErrors({});
   };
 
@@ -186,18 +184,23 @@ const TransactionsPageClient = ({
       };
       if (formValues.reminderDays)
         formValues.reminderDays = Number(formValues.reminderDays);
-      console.log("Form values", formValues);
-      if (showEditModal)
-        await updateTransaction({ ...formValues, id: editingTransactionId });
-      else await createTransaction(formValues);
+      let res;
+      if (editingTransactionId)
+        res = await updateTransaction({
+          ...formValues,
+          id: editingTransactionId,
+        });
+      else res = await createTransaction(formValues);
       handleCloseModal();
-      toast.success(
-        `${editingTransactionId ? "Edited" : "Added"} transaction successfully!`
-      );
+      if (res?.success)
+        toast.success(
+          `${editingTransactionId ? "Edited" : "Added"} transaction successfully!`
+        );
+      else throw new Error(res?.error as string);
       setEditingTransactionId("");
     } catch (error) {
       toast.error(
-        `Failed to ${editingTransactionId ? "edit" : "add"} category!`
+        `Failed to ${editingTransactionId ? "edit" : "add"} transaction!`
       );
     } finally {
       setIsSubmitting(false);
@@ -217,9 +220,10 @@ const TransactionsPageClient = ({
     if (!deletingTransaction) return;
     try {
       setIsDeleting(true);
-      await deleteTransaction(deletingTransaction?.id);
+      const res = await deleteTransaction(deletingTransaction?.id);
       handleCloseDeleteModal();
-      toast.success("Deleted transaction successfully!");
+      if (res?.success) toast.success("Deleted transaction successfully!");
+      else throw new Error(res?.error as string);
     } catch (error) {
       toast.error("Failed to delete transaction!");
     } finally {
@@ -236,6 +240,7 @@ const TransactionsPageClient = ({
       endDate: null,
       accountId: "ALL",
     });
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (field: keyof FilterOptions, value: any) => {
@@ -243,6 +248,7 @@ const TransactionsPageClient = ({
   };
 
   const filteredTransactions = useMemo(() => {
+    setCurrentPage(1);
     let result = transactions;
     if (filterOptions.searchTerm) {
       const searchTermLower = filterOptions.searchTerm.toLowerCase();
@@ -367,6 +373,19 @@ const TransactionsPageClient = ({
       setIsScanningReceipt(false);
     }
   };
+
+  const [pageFilteredTransactions, setPageFilteredTransactions] =
+    useState(filteredTransactions);
+
+  useEffect(() => {
+    if (currentPage) {
+      const startIdx = (currentPage - 1) * pageSize;
+      const endIdx = startIdx + pageSize;
+      setPageFilteredTransactions(
+        filteredTransactions?.slice(startIdx, endIdx)
+      );
+    }
+  }, [currentPage, filteredTransactions]);
 
   return (
     <div className="space-y-6 h-full">
@@ -552,8 +571,14 @@ const TransactionsPageClient = ({
           onClick={handleDownloadTransactionsData}
           disabled={isExportingTransactionsData}
         >
-          <Download size={18} className="mr-1" />
-          Download Transactions
+          {isExportingTransactionsData ? (
+            <Loader size={18} className="animate-spin" />
+          ) : (
+            <>
+              <Download size={18} className="mr-1" />
+              Download Transactions
+            </>
+          )}
         </button>
       </div>
 
@@ -571,150 +596,158 @@ const TransactionsPageClient = ({
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
-                  >
-                    Date
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
-                  >
-                    Description
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
-                  >
-                    Category
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
-                  >
-                    Amount
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
-                  >
-                    Recurring
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredTransactions?.map((transaction, idx) => {
-                  const dueStatus = getDueStatus(transaction);
-                  return (
-                    <tr
-                      className="hover:bg-gray-50 transition-colors"
-                      key={idx}
+        <>
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
                     >
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        {format(new Date(transaction.date), "MMM dd, yyyy")}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        {transaction.note}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        {transaction.category.iconUrl}{" "}
-                        {transaction.category.name}
-                      </td>
-                      <td className="px-6 py-4 text-sm whitespace-nowrap">
-                        <div
-                          className={`flex items-center ${
-                            transaction.type === "INCOME"
-                              ? "text-success-600"
-                              : "text-error-600"
-                          }`}
-                        >
-                          {transaction.type === "INCOME" ? (
-                            <ArrowUpRight size={16} className="mr-1" />
-                          ) : (
-                            <ArrowDownRight size={16} className="mr-1" />
-                          )}
-                          ${transaction.amount.toFixed(2)}
-                        </div>
-                      </td>
-                      <td
-                        className={`px-6 py-4 text-sm text-gray-600 whitespace-nowrap`}
+                      Date
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
+                    >
+                      Description
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
+                    >
+                      Category
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
+                    >
+                      Amount
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
+                    >
+                      Recurring
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
+                    >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-xs text-left text-gray-500 font-medium uppercase tracking-wide"
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {pageFilteredTransactions?.map((transaction, idx) => {
+                    const dueStatus = getDueStatus(transaction);
+                    return (
+                      <tr
+                        className="hover:bg-gray-50 transition-colors"
+                        key={idx}
                       >
-                        {transaction.isRecurring ? (
-                          <div className="flex items-center text-primary-600">
-                            <Repeat className="mr-2" size={16} />
-                            <span className="capitalize">
-                              {transaction.recurringInterval}
-                            </span>
+                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                          {format(new Date(transaction.date), "MMM dd, yyyy")}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                          {transaction.note}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                          {transaction.category.iconUrl}{" "}
+                          {transaction.category.name}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          <div
+                            className={`flex items-center ${
+                              transaction.type === "INCOME"
+                                ? "text-success-600"
+                                : "text-error-600"
+                            }`}
+                          >
+                            {transaction.type === "INCOME" ? (
+                              <ArrowUpRight size={16} className="mr-1" />
+                            ) : (
+                              <ArrowDownRight size={16} className="mr-1" />
+                            )}
+                            ${transaction.amount.toFixed(2)}
                           </div>
-                        ) : (
-                          <span className="text-gray-400 w-full pl-7">-</span>
-                        )}
-                      </td>
+                        </td>
+                        <td
+                          className={`px-6 py-4 text-sm text-gray-600 whitespace-nowrap`}
+                        >
+                          {transaction.isRecurring ? (
+                            <div className="flex items-center text-primary-600">
+                              <Repeat className="mr-2" size={16} />
+                              <span className="capitalize">
+                                {transaction.recurringInterval}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 w-full pl-7">-</span>
+                          )}
+                        </td>
 
-                      <td
-                        className={`px-6 py-4 text-sm text-gray-600 whitespace-nowrap`}
-                      >
-                        {transaction.isCompleted ? (
-                          <span className="px-2 py-1 inline-flex items-center bg-success-100 text-success-800 rounded-full text-xs font-medium">
-                            Completed
-                          </span>
-                        ) : dueStatus ? (
-                          <span
-                            className={`inline-flex items-center px-2 py-1 ${
-                              dueStatus.type === "overdue"
-                                ? "bg-error-100 text-error-800"
-                                : "bg-warn-100 text-warning-800"
-                            } rounded-full text-xs font-medium`}
-                          >
-                            {dueStatus.text}
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 flex items-center bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                            Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        <div className="flex justify-start ml-2 gap-2 items-center">
-                          <button
-                            className="text-gray-400 hover:text-error-500 transition-colors hover:cursor-pointer"
-                            onClick={() => handleOpenModal(transaction)}
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            className="text-gray-400 hover:text-error-500 transition-colors hover:cursor-pointer"
-                            onClick={() => handleOpenDeleteModal(transaction)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        <td
+                          className={`px-6 py-4 text-sm text-gray-600 whitespace-nowrap`}
+                        >
+                          {transaction.isCompleted ? (
+                            <span className="px-2 py-1 inline-flex items-center bg-success-100 text-success-800 rounded-full text-xs font-medium">
+                              Completed
+                            </span>
+                          ) : dueStatus ? (
+                            <span
+                              className={`inline-flex items-center px-2 py-1 ${
+                                dueStatus.type === "overdue"
+                                  ? "bg-error-100 text-error-800"
+                                  : "bg-warn-100 text-warning-800"
+                              } rounded-full text-xs font-medium`}
+                            >
+                              {dueStatus.text}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 flex items-center bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                          <div className="flex justify-start ml-2 gap-2 items-center">
+                            <button
+                              className="text-gray-400 hover:text-error-500 transition-colors hover:cursor-pointer"
+                              onClick={() => handleOpenModal(transaction)}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              className="text-gray-400 hover:text-error-500 transition-colors hover:cursor-pointer"
+                              onClick={() => handleOpenDeleteModal(transaction)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+          <Pagination
+            currentPage={currentPage}
+            totalCnt={filteredTransactions?.length || 100}
+            pageSize={pageSize}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        </>
       )}
 
       {/* Add or Edit Transaction Modal */}
@@ -725,7 +758,9 @@ const TransactionsPageClient = ({
             <div className="max-w-md bg-white rounded-lg shadow-xl w-full animate-scale z-50">
               <div className="flex justify-between items-center p-4 border-b border-gray-200">
                 <h2 className="text-gray-900 text-xl font-semibold">
-                  {showEditModal ? "Update Transaction" : "Add Transaction"}
+                  {editingTransactionId
+                    ? "Update Transaction"
+                    : "Add Transaction"}
                 </h2>
                 <button
                   className="text-gray-500 hover:text-gray-700"
@@ -735,7 +770,7 @@ const TransactionsPageClient = ({
                 </button>
               </div>
               <form className="p-4 space-y-4" onSubmit={handleSubmit}>
-                {!showEditModal && (
+                {!editingTransactionId && (
                   <div className="flex items-center gap-2">
                     <input
                       type="file"
@@ -815,28 +850,50 @@ const TransactionsPageClient = ({
                     </p>
                   )}
                 </div>
-                <div>
-                  <label
-                    htmlFor="accountId"
-                    className="block text-sm font-medium text-gray-900 mb-1"
-                  >
-                    Account
-                  </label>
-                  <select
-                    id="accountId"
-                    name="accountId"
-                    value={formData.accountId || accounts?.[0].id}
-                    onChange={handleChange}
-                    className={`input`}
-                    disabled={!!editingTransactionId}
-                  >
-                    {accounts?.map((account, idx) => (
-                      <option value={account.id} key={idx}>
-                        {account.accountName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {accounts && accounts.length > 0 ? (
+                  <div>
+                    <label
+                      htmlFor="accountId"
+                      className="block text-sm font-medium text-gray-900 mb-1"
+                    >
+                      Account
+                    </label>
+                    <select
+                      id="accountId"
+                      name="accountId"
+                      value={formData.accountId || accounts?.[0]?.id}
+                      onChange={handleChange}
+                      className={`input`}
+                      disabled={!!editingTransactionId}
+                    >
+                      {accounts?.map((account, idx) => (
+                        <option value={account.id} key={idx}>
+                          {account.accountName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-warning-50 rounded-md">
+                    <div className="flex space-x-2 items-center">
+                      <AlertTriangleIcon
+                        size={18}
+                        className="text-warning-500"
+                      />
+                      <h3 className="font-medium text-sm text-warning-800">
+                        No Accounts
+                      </h3>
+                    </div>
+                    <div className="mt-1">
+                      <Link
+                        className="text-warning-700 mt-1"
+                        href={"/accounts"}
+                      >
+                        Add your first account
+                      </Link>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-1">
                     Transaction Type
@@ -891,27 +948,49 @@ const TransactionsPageClient = ({
                     </p>
                   )}
                 </div>
-                <div>
-                  <label
-                    htmlFor="categoryId"
-                    className="block text-sm font-medium text-gray-900 mb-1"
-                  >
-                    Category
-                  </label>
-                  <select
-                    id="categoryId"
-                    name="categoryId"
-                    value={formData.categoryId}
-                    onChange={handleChange}
-                    className={`input`}
-                  >
-                    {filteredCategories?.map((filteredCategory, idx) => (
-                      <option value={filteredCategory.id} key={idx}>
-                        {filteredCategory.iconUrl} {filteredCategory.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {filteredCategories && filteredCategories.length > 0 ? (
+                  <div>
+                    <label
+                      htmlFor="categoryId"
+                      className="block text-sm font-medium text-gray-900 mb-1"
+                    >
+                      Category
+                    </label>
+                    <select
+                      id="categoryId"
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onChange={handleChange}
+                      className={`input`}
+                    >
+                      {filteredCategories?.map((filteredCategory, idx) => (
+                        <option value={filteredCategory.id} key={idx}>
+                          {filteredCategory.iconUrl} {filteredCategory.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-warning-50 rounded-md">
+                    <div className="flex space-x-2 items-center">
+                      <AlertTriangleIcon
+                        size={18}
+                        className="text-warning-500"
+                      />
+                      <h3 className="font-medium text-sm text-warning-800">
+                        No Custom Categories
+                      </h3>
+                    </div>
+                    <div className="mt-1">
+                      <Link
+                        className="text-warning-700 mt-1"
+                        href={"/categories"}
+                      >
+                        Add your first category
+                      </Link>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <div className="flex items-center">
                     <input
@@ -1009,7 +1088,7 @@ const TransactionsPageClient = ({
                 >
                   {isSubmitting ? (
                     <Loader size={18} className="animate-spin" />
-                  ) : showEditModal ? (
+                  ) : editingTransactionId ? (
                     "Update Transaction"
                   ) : (
                     "Add Transaction"

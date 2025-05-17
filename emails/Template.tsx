@@ -23,6 +23,31 @@ export default function EmailTemplate({
   data,
   type,
 }: EmailTemplateProps) {
+  if (type === "financial-report") {
+    return (
+      <Html>
+        <Head />
+        <Preview>Monthly Financial Report</Preview>
+        <Body style={styles.body}>
+          <Container style={styles.container}>
+            <Heading style={styles.title}>Monthly Financial Report </Heading>
+            <Text style={styles.text}>Hello {userName},</Text>
+            <Text style={styles.text}>
+              These are your monthly financial insights last month
+            </Text>
+            <Section style={styles.statsContainer}>
+              {data.map((t: any, idx: number) => (
+                <Text style={styles.text} key={idx}>
+                  {t}
+                </Text>
+              ))}
+            </Section>
+          </Container>
+        </Body>
+      </Html>
+    );
+  }
+
   if (type === "due-reminders") {
     return (
       <Html>

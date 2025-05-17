@@ -43,7 +43,6 @@ interface BudgetsPageClientProps {
 const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteingBudget, setDeletingBudget] =
@@ -58,7 +57,7 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
     amount: 0,
-    categoryId: categories?.[0].id || "",
+    categoryId: categories?.[0]?.id || "",
   });
 
   const [editingBudgetId, setEditingBudgetId] = useState<string>("");
@@ -69,20 +68,19 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
     if (budget) {
       console.log("Category id", budget.categoryId);
       setEditingBudgetId(budget.id);
-      setFormData({
+      setFormData((p) => ({
         month: budget.month,
         year: budget.year,
         amount: budget.amount,
         categoryId: budget.categoryId,
-      });
-      setShowEditModal(true);
+      }));
     } else {
-      setFormData({
+      setFormData((p) => ({
         month: new Date().getMonth(),
         year: new Date().getFullYear(),
         amount: 0,
         categoryId: formFilteredCategories?.[0]?.id || "",
-      });
+      }));
       setEditingBudgetId("");
     }
 
@@ -91,8 +89,6 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setShowEditModal(false);
-
     setFormErrors({});
     setFormData({
       month: new Date().getMonth(),
@@ -137,13 +133,16 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
     try {
       setIsSubmitting(true);
       console.log("Form data for budget", formData);
-      if (showEditModal)
-        await updateBudget({ ...formData, id: editingBudgetId });
-      else await createBudget(formData);
+      let res;
+      if (editingBudgetId)
+        res = await updateBudget({ ...formData, id: editingBudgetId });
+      else res = await createBudget(formData);
       handleCloseModal();
-      toast.success(
-        `${editingBudgetId ? "Edited" : "Added"} budget successfully!`
-      );
+      if (res?.success)
+        toast.success(
+          `${editingBudgetId ? "Edited" : "Added"} budget successfully!`
+        );
+      else throw new Error(res?.error as string);
       setEditingBudgetId("");
     } catch (error) {
       toast.error(`Failed to ${editingBudgetId ? "edit" : "add"} budget!`);
@@ -165,9 +164,10 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
     if (!deleteingBudget) return;
     try {
       setIsDeleting(true);
-      await deleteBudget(deleteingBudget?.id);
+      const res = await deleteBudget(deleteingBudget?.id);
       handleCloseDeleteModal();
-      toast.success("Deleted budget successfully!");
+      if (res?.success) toast.success("Deleted budget successfully!");
+      else throw new Error(res?.error as string);
     } catch (error) {
       toast.error("Failed to delete budget!");
     } finally {
@@ -190,10 +190,11 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
     }
     let result = categories;
     result = result?.filter((c) => !t?.some((b) => b.categoryId === c?.id));
-    setFormData((p) => ({
-      ...p,
-      categoryId: result?.[0]?.id || "",
-    }));
+    if (!editingBudgetId)
+      setFormData((p) => ({
+        ...p,
+        categoryId: result?.[0]?.id || "",
+      }));
     return result;
   }, [formData.month, formData.year, budgets, categories]);
 
@@ -282,7 +283,7 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
             <div className="max-w-md bg-white rounded-lg shadow-xl w-full animate-scale z-50">
               <div className="flex justify-between items-center p-4 border-b border-gray-200">
                 <h2 className="text-gray-900 text-xl font-semibold">
-                  {showEditModal ? "Update Budget" : "Add Budget"}
+                  {editingBudgetId ? "Update Budget" : "Add Budget"}
                 </h2>
                 <button
                   className="text-gray-500 hover:text-gray-700"
@@ -377,7 +378,7 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
                       </h3>
                       <p className="text-warning-700 mt-1">
                         You've already created budgets for all categories for
-                        selected month and year.
+                        selected month and year or there is no category.
                       </p>
                     </div>
                   </div>
@@ -431,7 +432,7 @@ const BudgetPageClient = ({ budgets, categories }: BudgetsPageClientProps) => {
                 >
                   {isSubmitting ? (
                     <Loader size={18} className="animate-spin" />
-                  ) : showEditModal ? (
+                  ) : editingBudgetId ? (
                     "Update Budget"
                   ) : (
                     "Add Budget"

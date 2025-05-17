@@ -16,6 +16,8 @@ export async function createTransaction(
   data: Omit<TransactionWithCategory, "id">
 ) {
   try {
+    if (!data || !data.accountId)
+      throw new Error("Account Required for creating transaction");
     const userId = await getDbUserId();
     if (!userId) return;
     const transaction = await prisma.transaction.create({
@@ -28,8 +30,7 @@ export async function createTransaction(
             : null,
       },
     });
-    if (!data || !data.accountId)
-      throw new Error("Account Required for creating transaction");
+
     const account = await prisma.account.findUnique({
       where: {
         id: data.accountId,
