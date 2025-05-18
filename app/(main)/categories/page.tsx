@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import CategoriesPageClient from "./_components/CategoriesPageClient";
 import { getCategories } from "../../../actions/categories.action";
 

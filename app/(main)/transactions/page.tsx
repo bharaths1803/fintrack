@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getTransactions } from "../../../actions/transaction.action";
 import TransactionsPageClient from "./_components/TransactionsPageClient";
 import { getCategories } from "../../../actions/categories.action";
