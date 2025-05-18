@@ -1,6 +1,4 @@
-import React from "react";
 import CategoriesPageClient from "./_components/CategoriesPageClient";
-import { getDbUserId } from "../../../actions/user.action";
 import { getCategories } from "../../../actions/categories.action";
 
 const CategoriesPage = async () => {

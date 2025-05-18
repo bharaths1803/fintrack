@@ -5,7 +5,6 @@ import {
   getMonthlyBudgets,
   getRecentTransactions,
 } from "../../../actions/dashboard.action";
-import React from "react";
 import DashboardPageClient from "./_components/DashboardPageClient";
 import { getAccounts } from "../../../actions/account.action";
 import { syncUser } from "../../../lib/syncUser";

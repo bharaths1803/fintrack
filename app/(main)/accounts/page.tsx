@@ -1,5 +1,3 @@
-import React from "react";
-import { getDbUserId } from "../../../actions/user.action";
 import AccountsPageClient from "./_components/AccountsPageClient";
 import { getAccounts } from "../../../actions/account.action";
 

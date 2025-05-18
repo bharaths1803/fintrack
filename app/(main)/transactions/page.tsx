@@ -1,6 +1,4 @@
 import { getTransactions } from "../../../actions/transaction.action";
-import { getDbUserId } from "../../../actions/user.action";
-import React from "react";
 import TransactionsPageClient from "./_components/TransactionsPageClient";
 import { getCategories } from "../../../actions/categories.action";
 import { getAccounts } from "../../../actions/account.action";
