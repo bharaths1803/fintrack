@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import AccountsPageClient from "./_components/AccountsPageClient";
 import { getAccounts } from "../../../actions/account.action";
 
