@@ -6,7 +6,6 @@ import { getCategories } from "../../../actions/categories.action";
 import { getAccounts } from "../../../actions/account.action";
 
 const TransactionsPage = async () => {
-  const dbUserId = await getDbUserId();
   const transactions = await getTransactions();
   const categories = await getCategories();
   const accounts = await getAccounts();
