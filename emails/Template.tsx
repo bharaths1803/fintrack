@@ -110,7 +110,9 @@ export default function EmailTemplate({
                 </div>
               ))}
             </Section>
-            <Link href="http://localhost:3000/dashboard">[Open Dashboard]</Link>
+            <Link href="https://fintrack-kappa-amber.vercel.app/dashboard">
+              [Open Dashboard]
+            </Link>
           </Container>
         </Body>
       </Html>
