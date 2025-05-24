@@ -27,7 +27,14 @@ model User {
   categories    Category[]
   budgets       Budget[]
   accounts      Account[]
-  financialJoke String?
+  groups        Group[]       @relation("GroupMembers")
+  adminGroups   Group[]       @relation("GroupAdmin")
+
+  expenses            Expense[]     @relation("PartOfExpenses")
+  paidExpenses        Expense[]     @relation("PaidByExpenses")
+  financialJoke       String?
+  settlementsPaid     Settlements[] @relation("PaidSettlements")
+  settlementsReceived Settlements[] @relation("ReceivedSettlements")
 
   @@map("users")
 }
@@ -109,6 +116,46 @@ model Account {
   @@map("accounts")
 }
 
+model Group {
+  id        String @id @default(uuid())
+  members   User[] @relation("GroupMembers")
+  createdBy User   @relation("GroupAdmin", fields: [adminId], references: [id])
+  adminId   String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expenses  Expense[]
+}
+
+model Expense {
+  id           String        @id @default(uuid())
+  splitType    SplitType
+  amount       Decimal
+  description  String
+  splitMembers User[]        @relation("PartOfExpenses")
+  paidByUser   User          @relation("PaidByExpenses", fields: [userId], references: [id])
+  userId       String
+  isSettled    Boolean       @default(false)
+  group        Group?        @relation(fields: [groupId], references: [id])
+  groupId      String?
+  settlements  Settlements[]
+}
+
+model Settlements {
+  id             String  @id @default(uuid())
+  sentUser       User    @relation("PaidSettlements", fields: [sentUserId], references: [id])
+  sentUserId     String
+  receivedUser   User    @relation("ReceivedSettlements", fields: [receivedUserId], references: [id])
+  receivedUserId String
+  expense        Expense @relation(fields: [expenseId], references: [id])
+  expenseId      String
+  amount         Decimal
+  note           String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum TransactionType {
   INCOME
   EXPENSE
@@ -119,4 +166,10 @@ enum RecurringInterval {
   WEEKLY
   MONTHLY
   YEARLY
+}
+
+enum SplitType {
+  PERCENTAGE
+  AMOUNT
+  EQUAL
 }
