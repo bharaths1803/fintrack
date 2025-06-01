@@ -1,9 +1,9 @@
 "use client";
 
 import {
+  Contact,
   DollarSign,
   Home,
-  List,
   PieChart,
   Tags,
   TrendingUp,
@@ -127,6 +127,18 @@ const Sidebar = () => {
           >
             <Tags size={18} />
             Categories
+          </Link>
+          <Link
+            href={"/contacts"}
+            onClick={handleCloseMobileMenu}
+            className={`flex items-center px-3 py-4 gap-3 rounded-md transition-colors font-medium ${
+              pathName === "/contacts"
+                ? "bg-primary-50 text-primary-700"
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            <Contact size={18} />
+            Contacts
           </Link>
         </nav>
       </aside>

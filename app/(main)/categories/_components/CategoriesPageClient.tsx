@@ -142,6 +142,7 @@ const CategoriesPageClient = ({ categories }: CategoriesPageClientProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="sm:flex items-center justify-between">
         <h1 className="text-gray-900 font-bold text-2xl">Categories</h1>
         <button

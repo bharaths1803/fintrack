@@ -35,6 +35,7 @@ model User {
   financialJoke       String?
   settlementsPaid     Settlements[] @relation("PaidSettlements")
   settlementsReceived Settlements[] @relation("ReceivedSettlements")
+  Split               Split[]
 
   @@map("users")
 }
@@ -77,6 +78,7 @@ model Category {
 
   budget       Budget[]
   transactions Transaction[]
+  expenses     Expense[]
 
   @@index([userId])
   @@map("categories")
@@ -109,22 +111,24 @@ model Account {
 
   transactions Transaction[]
 
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
+  user           User      @relation(fields: [userId], references: [id])
+  userId         String
+  sharedExpenses Expense[]
 
   @@index([userId])
   @@map("accounts")
 }
 
 model Group {
-  id        String @id @default(uuid())
-  members   User[] @relation("GroupMembers")
-  createdBy User   @relation("GroupAdmin", fields: [adminId], references: [id])
-  adminId   String
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  expenses  Expense[]
+  id          String    @id @default(uuid())
+  members     User[]    @relation("GroupMembers")
+  createdBy   User      @relation("GroupAdmin", fields: [adminId], references: [id])
+  adminId     String
+  name        String
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expenses    Expense[]
 }
 
 model Expense {
@@ -132,28 +136,45 @@ model Expense {
   splitType    SplitType
   amount       Decimal
   description  String
+  date         DateTime
   splitMembers User[]        @relation("PartOfExpenses")
   paidByUser   User          @relation("PaidByExpenses", fields: [userId], references: [id])
   userId       String
   isSettled    Boolean       @default(false)
   group        Group?        @relation(fields: [groupId], references: [id])
   groupId      String?
+  category     Category      @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  account      Account?      @relation(fields: [accountId], references: [id])
+  accountId    String?
   settlements  Settlements[]
+  splits       Split[]
+}
+
+model Split {
+  id             String  @id @default(uuid())
+  hasAlreadyPaid Boolean
+  splitAmount    Decimal
+
+  expense   Expense? @relation(fields: [expenseId], references: [id])
+  expenseId String?
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
 }
 
 model Settlements {
-  id             String  @id @default(uuid())
-  sentUser       User    @relation("PaidSettlements", fields: [sentUserId], references: [id])
+  id             String   @id @default(uuid())
+  sentUser       User     @relation("PaidSettlements", fields: [sentUserId], references: [id])
   sentUserId     String
-  receivedUser   User    @relation("ReceivedSettlements", fields: [receivedUserId], references: [id])
+  receivedUser   User     @relation("ReceivedSettlements", fields: [receivedUserId], references: [id])
   receivedUserId String
-  expense        Expense @relation(fields: [expenseId], references: [id])
+  expense        Expense  @relation(fields: [expenseId], references: [id])
   expenseId      String
   amount         Decimal
   note           String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 enum TransactionType {

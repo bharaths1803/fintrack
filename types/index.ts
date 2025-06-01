@@ -5,6 +5,19 @@ export interface Category {
   iconUrl: string;
 }
 
+export interface Group {
+  id: string;
+  name: string;
+  description: string;
+  selectedMembers: Member[];
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  profilePicUrl: string;
+}
+
 export interface Transaction {
   id: string;
   type: "INCOME" | "EXPENSE";
@@ -58,4 +71,27 @@ export interface FilterOptionsDashboardData {
   month: number;
   year: number;
   accountId: string | null;
+}
+
+export interface SharedExpense {
+  id: string;
+  splitType: "PERCENTAGE" | "AMOUNT" | "EQUAL";
+  amount: number;
+  description: string;
+  userId: string;
+  isSettled: boolean;
+  groupId?: string | null;
+  splits: Split[];
+  categoryId: string;
+  accountId: string;
+  date: Date;
+}
+
+export interface Split {
+  hasAlreadyPaid: boolean;
+  splitAmount: number;
+  userId: string;
+  name: string;
+  profilePicUrl: string;
+  splitPercentage: number;
 }
