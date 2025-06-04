@@ -2,7 +2,6 @@
 
 import {
   AlertTriangleIcon,
-  Link,
   Loader,
   Plus,
   PlusIcon,
@@ -14,7 +13,6 @@ import React, { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Group, Member, SharedExpense, Split } from "../../../../types";
 import {
-  createGroup,
   getContacts,
   getSearchedUsers,
 } from "../../../../actions/contact.action";
@@ -22,6 +20,8 @@ import toast from "react-hot-toast";
 import { getCategories } from "../../../../actions/categories.action";
 import { getAccounts } from "../../../../actions/account.action";
 import { createExpense } from "../../../../actions/expense.action";
+import Link from "next/link";
+import { createGroup } from "../../../../actions/group.actions";
 
 type SearchedUsers = Awaited<ReturnType<typeof getSearchedUsers>>;
 type Categories = Awaited<ReturnType<typeof getCategories>>;
@@ -46,8 +46,9 @@ const ContactsPageClient = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [searchedUsers, setSearchedUsers] = useState<SearchedUsers>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState<boolean>(false);
-  const [selectedExpenseType, setSelectedExpenseType] =
-    useState<string>("INDIVIDUAL");
+  const [selectedExpenseType, setSelectedExpenseType] = useState<
+    "INDIVIDUAL" | "GROUP"
+  >("INDIVIDUAL");
 
   const [showExpensesModal, setShowExpensesModal] = useState<boolean>(false);
   const [isSubmittingExpenses, setIsSubmittingExpenses] =
@@ -215,6 +216,9 @@ const ContactsPageClient = ({
     if (!expenseFormData.splits) {
       errors.splits = "Select split people";
     }
+    if (selectedExpenseType === "GROUP" && !expenseFormData.groupId) {
+      errors.groupId = "Must select a group";
+    }
     setExpensesFormErrors(errors);
     console.log("Errors", errors);
     return Object.keys(errors).length === 0;
@@ -225,7 +229,30 @@ const ContactsPageClient = ({
   ) => {
     e.preventDefault();
     const { name, value } = e.target;
-    setExpenseFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "groupId") {
+      const group = contacts?.groups?.find((g) => g.id === value);
+      let splitsTemp: Split[] = [];
+
+      if (group) {
+        group.members.forEach((user) => {
+          const splitObject: Split = {
+            userId: user.id,
+            name: user.name,
+            profilePicUrl: user.profilePicUrl,
+            hasAlreadyPaid: false,
+            splitAmount: 0,
+            splitPercentage: 0,
+          };
+
+          splitsTemp = [...splitsTemp, splitObject];
+        });
+      }
+      setExpenseFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        splits: [...splitsTemp],
+      }));
+    } else setExpenseFormData((prev) => ({ ...prev, [name]: value }));
     if (expensesFormErrors[name]) {
       setExpensesFormErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -253,27 +280,29 @@ const ContactsPageClient = ({
   };
 
   const handleToggleOnSplitSelection = (user: Member) => {
-    if (!hasAlreadyBeenSelectedForSplit(user.id)) {
-      const splitObject: Split = {
-        userId: user.id,
-        name: user.name,
-        profilePicUrl: user.profilePicUrl,
-        hasAlreadyPaid: false,
-        splitAmount: 0,
-        splitPercentage: 0,
-      };
-      setExpenseFormData((p) => ({
-        ...p,
-        splits: [...p.splits, splitObject],
-      }));
-    } else {
-      setExpenseFormData((p) => ({
-        ...p,
-        splits: expenseFormData.splits.filter(
-          (member) => user.id !== member.userId
-        ),
-      }));
-    }
+    setExpenseFormData((p) => {
+      if (!hasAlreadyBeenSelectedForSplit(user.id)) {
+        const splitObject: Split = {
+          userId: user.id,
+          name: user.name,
+          profilePicUrl: user.profilePicUrl,
+          hasAlreadyPaid: false,
+          splitAmount: 0,
+          splitPercentage: 0,
+        };
+        return {
+          ...p,
+          splits: [...p.splits, splitObject],
+        };
+      } else {
+        return {
+          ...p,
+          splits: expenseFormData.splits.filter(
+            (member) => user.id !== member.userId
+          ),
+        };
+      }
+    });
   };
 
   const handleToggleOffSplitSelection = (user: Split) => {
@@ -585,7 +614,7 @@ const ContactsPageClient = ({
                         type="radio"
                         name="expenseType"
                         value="INDIVIDUAL"
-                        onChange={(e) => setSelectedExpenseType(e.target.value)}
+                        onChange={(e) => setSelectedExpenseType("INDIVIDUAL")}
                         checked={selectedExpenseType === "INDIVIDUAL"}
                         className="size-4 border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
@@ -596,7 +625,7 @@ const ContactsPageClient = ({
                         type="radio"
                         name="expenseType"
                         value="GROUP"
-                        onChange={(e) => setSelectedExpenseType(e.target.value)}
+                        onChange={(e) => setSelectedExpenseType("GROUP")}
                         checked={selectedExpenseType === "GROUP"}
                         className="size-4 border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
@@ -843,152 +872,180 @@ const ContactsPageClient = ({
                     )}
                   </div>
                 </div>
-                <div>
-                  <label
-                    htmlFor="memberIds"
-                    className="block text-sm font-medium text-gray-900 mb-1"
-                  >
-                    Members
-                  </label>
-                  <div className="py-1 mb-2">
-                    <div className="flex-1 relative">
-                      <div className="pl-3 flex items-center pointer-events-none absolute left-0 inset-y-0">
-                        <Search size={18} className="text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Search Users..."
-                        onChange={handleSearchUsers}
-                        className="pl-10 py-2 pr-4 border border-gray-300 rounded-md focus:border-primary-500 focus:ring-primary-500 w-full z-10"
-                      />
-                    </div>
-                    {isSearchingUsers ? (
-                      <p className="text-gray-600 mt-2">Searching...</p>
-                    ) : searchedUsers && searchedUsers.length > 0 ? (
-                      <div className="max-h-28 overflow-y-auto">
-                        {searchedUsers.map((user) => {
-                          const isAlreadySelected =
-                            hasAlreadyBeenSelectedForSplit(user.id);
-                          const isCurrentUser = dbUserId === user.id;
-                          return (
-                            <div
-                              className="flex items-center gap-2 p-2 hover:cursor-pointer"
-                              key={user.id}
-                            >
-                              <input
-                                type="checkbox"
-                                id="memberId"
-                                name="memberId"
-                                checked={isAlreadySelected}
-                                onChange={() =>
-                                  handleToggleOnSplitSelection(user)
-                                }
-                                className="border-gray-300 rounded text-primary-600 focus:ring-primary-500 h-4 w-4"
-                              />
-                              <img
-                                src={user?.profilePicUrl}
-                                className="w-6 h-6 rounded-full"
-                              />{" "}
-                              <p className="text-sm text-gray-900">
-                                {user.name} {isCurrentUser && "(You)"}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {expensesFormErrors.selectedMembers && (
-                    <p className="mt-1 text-error-600 text-sm">
-                      {expensesFormErrors.selectedMembers}
-                    </p>
-                  )}
-                </div>
-                <div className="border border-gray-200 p-2 rounded-lg">
-                  <h3 className="text-gray-900 font-medium text-2xl mb-2">
-                    Split Details
-                  </h3>
-                  {expenseFormData.splits.map((user, idx) => (
-                    <div
-                      className="flex justify-between mb-4"
-                      key={user.userId}
+                {selectedExpenseType === "INDIVIDUAL" ? (
+                  <div>
+                    <label
+                      htmlFor="memberIds"
+                      className="block text-sm font-medium text-gray-900 mb-1"
                     >
+                      Members
+                    </label>
+                    <div className="py-1 mb-2">
+                      <div className="flex-1 relative">
+                        <div className="pl-3 flex items-center pointer-events-none absolute left-0 inset-y-0">
+                          <Search size={18} className="text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Search Users..."
+                          onChange={handleSearchUsers}
+                          className="pl-10 py-2 pr-4 border border-gray-300 rounded-md focus:border-primary-500 focus:ring-primary-500 w-full z-10"
+                        />
+                      </div>
+                      {isSearchingUsers ? (
+                        <p className="text-gray-600 mt-2">Searching...</p>
+                      ) : searchedUsers && searchedUsers.length > 0 ? (
+                        <div className="max-h-28 overflow-y-auto">
+                          {searchedUsers.map((user) => {
+                            const isAlreadySelected =
+                              hasAlreadyBeenSelectedForSplit(user.id);
+                            const isCurrentUser = dbUserId === user.id;
+                            return (
+                              <div
+                                className="flex items-center gap-2 p-2 hover:cursor-pointer"
+                                key={user.id}
+                              >
+                                <input
+                                  type="checkbox"
+                                  id="memberId"
+                                  name="memberId"
+                                  checked={isAlreadySelected}
+                                  onChange={() =>
+                                    handleToggleOnSplitSelection(user)
+                                  }
+                                  className="border-gray-300 rounded text-primary-600 focus:ring-primary-500 h-4 w-4"
+                                />
+                                <img
+                                  src={user?.profilePicUrl}
+                                  className="w-6 h-6 rounded-full"
+                                />{" "}
+                                <p className="text-sm text-gray-900">
+                                  {user.name} {isCurrentUser && "(You)"}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {expensesFormErrors.selectedMembers && (
+                      <p className="mt-1 text-error-600 text-sm">
+                        {expensesFormErrors.selectedMembers}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <label
+                      htmlFor="groupId"
+                      className="block text-sm font-medium text-gray-900 mb-1"
+                    >
+                      Groups
+                    </label>
+                    <select
+                      id="groupId"
+                      name="groupId"
+                      value={expenseFormData.groupId || ""}
+                      onChange={handleExpensesChange}
+                      className={`input`}
+                    >
+                      <option value="">Select group</option>
+                      {contacts?.groups?.map((group) => (
+                        <option value={group.id} key={group.id}>
+                          {group.name} ({group.members.length} members)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {expenseFormData.splits.length > 0 && (
+                  <div className="border border-gray-200 p-2 rounded-lg">
+                    <h3 className="text-gray-900 font-medium text-2xl mb-2">
+                      Split Details
+                    </h3>
+                    {expenseFormData.splits.map((user, idx) => (
                       <div
-                        className="flex items-center space-x-2"
+                        className="flex justify-between mb-4"
                         key={user.userId}
                       >
-                        <img
-                          src={user.profilePicUrl}
-                          alt="Profile Picture"
-                          className="w-6 h-6 rounded-full"
-                        />
-                        <p className="text-gray-900 text-sm font-medium">
-                          {user.name} {user.userId === dbUserId && "(You)"}
-                        </p>
-                      </div>
-                      {expenseFormData.splitType !== "EQUAL" && (
-                        <>
-                          {expenseFormData.splitType === "AMOUNT" ? (
-                            <div className="w-24">
-                              <input
-                                type="number"
-                                className="input py-1 px-2"
-                                value={user.splitAmount}
-                                placeholder="0.00"
-                                min={"0"}
-                                onChange={(e) =>
-                                  handleSplitChange(
-                                    user.userId,
-                                    e.target.value,
-                                    "AMOUNT"
-                                  )
-                                }
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-24">
-                              <input
-                                type="number"
-                                className="input py-1 px-2"
-                                value={user.splitPercentage}
-                                placeholder="0.00"
-                                min={"0"}
-                                onChange={(e) =>
-                                  handleSplitChange(
-                                    user.userId,
-                                    e.target.value,
-                                    "PERCENTAGE"
-                                  )
-                                }
-                              />
-                            </div>
-                          )}
-                        </>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-900 text-sm">
-                          ${user.splitAmount.toFixed(2)}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          ({user.splitPercentage.toFixed(1)}%)
-                        </span>
-                        <button
-                          type="button"
-                          className="flex items-center"
-                          onClick={() => handleToggleOffSplitSelection(user)}
+                        <div
+                          className="flex items-center space-x-2"
+                          key={user.userId}
                         >
-                          <X size={16} />
-                        </button>
+                          <img
+                            src={user.profilePicUrl}
+                            alt="Profile Picture"
+                            className="w-6 h-6 rounded-full"
+                          />
+                          <p className="text-gray-900 text-sm font-medium">
+                            {user.name} {user.userId === dbUserId && "(You)"}
+                          </p>
+                        </div>
+                        {expenseFormData.splitType !== "EQUAL" && (
+                          <>
+                            {expenseFormData.splitType === "AMOUNT" ? (
+                              <div className="w-24">
+                                <input
+                                  type="number"
+                                  className="input py-1 px-2"
+                                  value={user.splitAmount}
+                                  placeholder="0.00"
+                                  min={"0"}
+                                  onChange={(e) =>
+                                    handleSplitChange(
+                                      user.userId,
+                                      e.target.value,
+                                      "AMOUNT"
+                                    )
+                                  }
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-24">
+                                <input
+                                  type="number"
+                                  className="input py-1 px-2"
+                                  value={user.splitPercentage}
+                                  placeholder="0.00"
+                                  min={"0"}
+                                  onChange={(e) =>
+                                    handleSplitChange(
+                                      user.userId,
+                                      e.target.value,
+                                      "PERCENTAGE"
+                                    )
+                                  }
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-900 text-sm">
+                            ${user.splitAmount.toFixed(2)}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            ({user.splitPercentage.toFixed(1)}%)
+                          </span>
+                          <button
+                            type="button"
+                            className="flex items-center"
+                            onClick={() => handleToggleOffSplitSelection(user)}
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {expensesFormErrors.exceedingTotal && (
-                    <p className="mt-1 text-error-600 text-sm">
-                      {expensesFormErrors.exceedingTotal}
-                    </p>
-                  )}
-                </div>
+                    ))}
+
+                    {expensesFormErrors.exceedingTotal && (
+                      <p className="mt-1 text-error-600 text-sm">
+                        {expensesFormErrors.exceedingTotal}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <button
                   className="btn-primary w-full p-2 flex items-center justify-center"
                   type="submit"
@@ -1022,9 +1079,10 @@ const ContactsPageClient = ({
             </button>
           </div>
           {contacts?.people.map((user) => (
-            <div
-              className="card flex space-x-2 p-4 items-center"
+            <Link
+              href={`/person/${user?.id}`}
               key={user?.id}
+              className="card flex space-x-2 p-4 items-center"
             >
               <img
                 src={user?.profilePicUrl}
@@ -1035,7 +1093,7 @@ const ContactsPageClient = ({
                 <p className="text-gray-900">{user?.name}</p>
                 <p className="text-gray-600">{user?.email}</p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
         <div className="space-y-4">
@@ -1051,9 +1109,10 @@ const ContactsPageClient = ({
             </button>
           </div>
           {contacts?.groups?.map((group) => (
-            <div
+            <Link
               className="card flex space-x-2 p-4 items-center"
               key={group.id}
+              href={`/group/${group.id}`}
             >
               <div className="bg-gray-200 p-2 rounded-lg">
                 <UsersIcon size={18} />
@@ -1064,7 +1123,7 @@ const ContactsPageClient = ({
                   {group.members.length} members
                 </p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

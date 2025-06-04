@@ -14,8 +14,6 @@ const ContactsPage = async () => {
   const accounts = await getAccounts();
   const contacts = await getContacts();
 
-  console.log("Contacts", contacts);
-
   return (
     <ContactsPageClient
       dbUserId={dbUserId}

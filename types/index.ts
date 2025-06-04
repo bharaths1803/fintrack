@@ -95,3 +95,12 @@ export interface Split {
   profilePicUrl: string;
   splitPercentage: number;
 }
+
+export interface Settlement {
+  id: string;
+  sentUserId: string;
+  receivedUserId: string;
+  amount: number;
+  note: string;
+  date: Date;
+}

@@ -120,34 +120,34 @@ model Account {
 }
 
 model Group {
-  id          String    @id @default(uuid())
-  members     User[]    @relation("GroupMembers")
-  createdBy   User      @relation("GroupAdmin", fields: [adminId], references: [id])
+  id          String        @id @default(uuid())
+  members     User[]        @relation("GroupMembers")
+  createdBy   User          @relation("GroupAdmin", fields: [adminId], references: [id])
   adminId     String
   name        String
   description String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   expenses    Expense[]
+  Settlements Settlements[]
 }
 
 model Expense {
-  id           String        @id @default(uuid())
+  id           String    @id @default(uuid())
   splitType    SplitType
   amount       Decimal
   description  String
   date         DateTime
-  splitMembers User[]        @relation("PartOfExpenses")
-  paidByUser   User          @relation("PaidByExpenses", fields: [userId], references: [id])
+  splitMembers User[]    @relation("PartOfExpenses")
+  paidByUser   User      @relation("PaidByExpenses", fields: [userId], references: [id])
   userId       String
-  isSettled    Boolean       @default(false)
-  group        Group?        @relation(fields: [groupId], references: [id])
+  isSettled    Boolean   @default(false)
+  group        Group?    @relation(fields: [groupId], references: [id])
   groupId      String?
-  category     Category      @relation(fields: [categoryId], references: [id])
+  category     Category  @relation(fields: [categoryId], references: [id])
   categoryId   String
-  account      Account?      @relation(fields: [accountId], references: [id])
+  account      Account?  @relation(fields: [accountId], references: [id])
   accountId    String?
-  settlements  Settlements[]
   splits       Split[]
 }
 
@@ -169,12 +169,13 @@ model Settlements {
   sentUserId     String
   receivedUser   User     @relation("ReceivedSettlements", fields: [receivedUserId], references: [id])
   receivedUserId String
-  expense        Expense  @relation(fields: [expenseId], references: [id])
-  expenseId      String
+  group          Group?   @relation(fields: [groupId], references: [id])
+  groupId        String?
   amount         Decimal
   note           String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  date           DateTime
 }
 
 enum TransactionType {
