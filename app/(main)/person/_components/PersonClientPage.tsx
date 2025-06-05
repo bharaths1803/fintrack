@@ -31,13 +31,6 @@ const PersonClientPage = ({ personData, dbUserId }: PersonClientPageProps) => {
 
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isSearchingUsers, setIsSearchingUsers] = useState<boolean>(false);
-  const [selectedExpenseType, setSelectedExpenseType] =
-    useState<string>("INDIVIDUAL");
-
-  const [showExpensesModal, setShowExpensesModal] = useState<boolean>(false);
-  const [isSubmittingExpenses, setIsSubmittingExpenses] =
-    useState<boolean>(false);
 
   const [formData, setFormData] = useState<Omit<Settlement, "id">>({
     sentUserId: dbUserId,

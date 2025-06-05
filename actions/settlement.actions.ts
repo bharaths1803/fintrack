@@ -5,6 +5,10 @@ import { prisma } from "../lib/prisma";
 import { Settlement } from "../types";
 import { getDbUserId } from "./user.action";
 
+const serializeSettlement = (obj: any) => {
+  return { ...obj, amount: obj.amount.toNumber() };
+};
+
 export async function createSettlement(data: Omit<Settlement, "id">) {
   try {
     const userId = await getDbUserId();
@@ -13,8 +17,11 @@ export async function createSettlement(data: Omit<Settlement, "id">) {
     const settlement = await prisma.settlements.create({
       data,
     });
+
     revalidatePath("/person");
-    return { success: true, settlement };
+    revalidatePath("/group");
+
+    return { success: true, settlement: serializeSettlement(settlement) };
   } catch (error) {
     console.log("Error creating settlement", error);
     return { success: false, error };

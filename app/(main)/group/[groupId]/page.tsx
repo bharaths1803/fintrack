@@ -1,23 +1,26 @@
+import { getGroupExpenses } from "../../../../actions/group.actions";
 import { getDbUserId } from "../../../../actions/user.action";
 import GroupClientPage from "../_components/GroupClientPage";
 
 export const dynamic = "force-dynamic";
 
-interface PersonProps {
+interface GroupPageProps {
   params: {
     groupId: string;
   };
 }
 
-const Person = async ({ params }: PersonProps) => {
+const GroupPage = async ({ params }: GroupPageProps) => {
   const dbUserId = await getDbUserId();
   if (!dbUserId) return;
 
   const { groupId } = params;
 
-  console.log("Group", groupId);
+  const groupData = await getGroupExpenses(groupId);
 
-  return <GroupClientPage dbUserId={dbUserId} />;
+  console.log("Group data", groupData);
+
+  return <GroupClientPage dbUserId={dbUserId} groupData={groupData} />;
 };
 
-export default Person;
+export default GroupPage;

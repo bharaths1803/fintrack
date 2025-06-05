@@ -178,7 +178,8 @@ const ContactsPageClient = ({
     Record<string, string>
   >({});
 
-  const handleOpenExpensesModal = () => {
+  const handleOpenExpensesModal = (expenseType: typeof selectedExpenseType) => {
+    setSelectedExpenseType(expenseType);
     setExpenseFormData({
       splitType: "EQUAL",
       amount: 0,
@@ -1072,7 +1073,7 @@ const ContactsPageClient = ({
             <h3 className="text-gray-900 font-semibold text-lg">People</h3>
             <button
               className="btn-secondary flex items-center mt-4 sm:mt-0"
-              onClick={handleOpenExpensesModal}
+              onClick={() => handleOpenExpensesModal("INDIVIDUAL")}
             >
               <PlusIcon size={18} className="mr-1" />
               Add Expense
@@ -1099,12 +1100,11 @@ const ContactsPageClient = ({
         <div className="space-y-4">
           <div className="sm:flex items-center justify-between">
             <h3 className="text-gray-900 font-semibold text-lg">Groups</h3>
-            <button className="btn-secondary flex items-center mt-4 sm:mt-0">
-              <PlusIcon
-                size={18}
-                className="mr-1"
-                onClick={handleOpenExpensesModal}
-              />
+            <button
+              className="btn-secondary flex items-center mt-4 sm:mt-0"
+              onClick={() => handleOpenExpensesModal("GROUP")}
+            >
+              <PlusIcon size={18} className="mr-1" />
               Add Expense
             </button>
           </div>

@@ -16,6 +16,7 @@ export interface Member {
   id: string;
   name: string;
   profilePicUrl: string;
+  email?: string;
 }
 
 export interface Transaction {
@@ -103,4 +104,5 @@ export interface Settlement {
   amount: number;
   note: string;
   date: Date;
+  groupId?: string;
 }
