@@ -10,8 +10,6 @@ const TransactionsPage = async () => {
   const categories = await getCategories();
   const accounts = await getAccounts();
 
-  console.log("Accounts", accounts);
-
   return (
     <TransactionsPageClient
       transactions={transactions}
