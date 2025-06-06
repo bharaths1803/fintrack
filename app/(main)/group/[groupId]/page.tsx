@@ -5,16 +5,16 @@ import GroupClientPage from "../_components/GroupClientPage";
 export const dynamic = "force-dynamic";
 
 interface GroupPageProps {
-  params: {
+  params: Promise<{
     groupId: string;
-  };
+  }>;
 }
 
 const GroupPage = async ({ params }: GroupPageProps) => {
   const dbUserId = await getDbUserId();
   if (!dbUserId) return;
 
-  const { groupId } = params;
+  const { groupId } = await params;
 
   const groupData = await getGroupExpenses(groupId);
 
