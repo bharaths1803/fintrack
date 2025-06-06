@@ -5,16 +5,16 @@ import PersonClientPage from "../_components/PersonClientPage";
 export const dynamic = "force-dynamic";
 
 interface PersonProps {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }
 
 const Person = async ({ params }: PersonProps) => {
   const dbUserId = await getDbUserId();
   if (!dbUserId) return;
 
-  const { userId } = params;
+  const { userId } = await params;
 
   const personData = await getExpensesBetweenUsers(userId);
 
