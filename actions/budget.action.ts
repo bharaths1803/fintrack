@@ -22,7 +22,7 @@ export async function createBudget(data: Omit<BudgetWithCategory, "id">) {
     revalidatePath("/budgets");
     return { success: true, budget: serializeBudget(budget) };
   } catch (error) {
-    console.log("Error crateing budget is", error);
+    console.log("Error creating budget is", error);
     return { success: false, error };
   }
 }
@@ -36,7 +36,7 @@ export async function deleteBudget(budgetId: string) {
         id: budgetId,
       },
     });
-    if (!budget) throw new Error("Transaction not found");
+    if (!budget) throw new Error("Budget not found");
     await prisma.budget.delete({
       where: {
         id: budgetId,
@@ -55,7 +55,6 @@ export async function updateBudget(data: BudgetWithCategory) {
     const userId = await getDbUserId();
     if (!userId) return;
     const { id, categoryId, ...budgetData } = data;
-    console.log("Data is", budgetData);
     const budget = await prisma.budget.update({
       where: {
         id,
@@ -108,6 +107,7 @@ export async function getBudgets() {
           );
         })
         .reduce((s, tx) => s + Number(tx.amount), 0);
+
       return {
         ...budget,
         amount: budget.amount.toNumber(),

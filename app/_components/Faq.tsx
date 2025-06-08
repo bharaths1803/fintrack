@@ -6,8 +6,7 @@ import React, { useState } from "react";
 const faqs = [
   {
     question: "Is FinTrack free to use?",
-    answer:
-      "Yes, FinTrack offers a free plan with all essential features. Premium features are available for power users.",
+    answer: "Yes, FinTrack services are always free to use",
   },
   {
     question: "How does FinTrack help me manage my spending?",
@@ -45,13 +44,13 @@ const Faq = () => {
   };
 
   return (
-    <div className="bg-gray-50 py-16">
+    <div className=" py-16" id="faq">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="mt-4 text-lg text-gray-600">
+          <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
             Got questions? We've got answers
           </p>
         </div>

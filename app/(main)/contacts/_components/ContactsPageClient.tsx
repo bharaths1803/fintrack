@@ -170,7 +170,6 @@ const ContactsPageClient = ({
     isSettled: false,
     splits: [],
     categoryId: "",
-    accountId: "",
     date: new Date(),
   });
 
@@ -188,7 +187,6 @@ const ContactsPageClient = ({
       isSettled: false,
       splits: [],
       categoryId: categories?.[0].id || "",
-      accountId: accounts?.[0].id || "",
       date: new Date(),
     });
     setShowExpensesModal(true);
@@ -730,92 +728,47 @@ const ContactsPageClient = ({
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {accounts && accounts.length > 0 ? (
-                    <div>
-                      <label
-                        htmlFor="accountId"
-                        className="block text-sm font-medium text-gray-900 mb-1"
-                      >
-                        Account
-                      </label>
-                      <select
-                        id="accountId"
-                        name="accountId"
-                        value={expenseFormData.accountId}
-                        onChange={handleExpensesChange}
-                        className={`input`}
-                      >
-                        {accounts?.map((account, idx) => (
-                          <option value={account.id} key={account.id}>
-                            {account.accountName}
+                {categories?.length === 0 ? (
+                  <div className="p-4 bg-warning-50 rounded-md">
+                    <AlertTriangleIcon
+                      size={20}
+                      className="text-warning-500 mr-1 mt-1"
+                    />
+                    <div className="mt-1">
+                      <h3 className="font-medium text-warning-800">
+                        All categories have budgets
+                      </h3>
+                      <p className="text-warning-700 mt-1">
+                        You've already created budgets for all categories for
+                        selected month and year or there is no category.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    <label
+                      htmlFor="categoryId"
+                      className="block text-sm font-medium text-gray-900 mb-1"
+                    >
+                      Category
+                    </label>
+                    <select
+                      id="categoryId"
+                      name="categoryId"
+                      value={expenseFormData.categoryId}
+                      onChange={handleExpensesChange}
+                      className={`input`}
+                    >
+                      {categories?.map((cat, idx) => {
+                        return (
+                          <option value={cat.id} key={cat.id}>
+                            {cat.iconUrl} {cat.name}
                           </option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-warning-50 rounded-md">
-                      <div className="flex space-x-2 items-center">
-                        <AlertTriangleIcon
-                          size={18}
-                          className="text-warning-500"
-                        />
-                        <h3 className="font-medium text-sm text-warning-800">
-                          No Accounts
-                        </h3>
-                      </div>
-                      <div className="mt-1">
-                        <Link
-                          className="text-warning-700 mt-1"
-                          href={"/accounts"}
-                        >
-                          Add your first account
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-                  {categories?.length === 0 ? (
-                    <div className="p-4 bg-warning-50 rounded-md">
-                      <AlertTriangleIcon
-                        size={20}
-                        className="text-warning-500 mr-1 mt-1"
-                      />
-                      <div className="mt-1">
-                        <h3 className="font-medium text-warning-800">
-                          All categories have budgets
-                        </h3>
-                        <p className="text-warning-700 mt-1">
-                          You've already created budgets for all categories for
-                          selected month and year or there is no category.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full">
-                      <label
-                        htmlFor="categoryId"
-                        className="block text-sm font-medium text-gray-900 mb-1"
-                      >
-                        Category
-                      </label>
-                      <select
-                        id="categoryId"
-                        name="categoryId"
-                        value={expenseFormData.categoryId}
-                        onChange={handleExpensesChange}
-                        className={`input`}
-                      >
-                        {categories?.map((cat, idx) => {
-                          return (
-                            <option value={cat.id} key={cat.id}>
-                              {cat.iconUrl} {cat.name}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  )}
-                </div>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label

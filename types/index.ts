@@ -84,7 +84,6 @@ export interface SharedExpense {
   groupId?: string | null;
   splits: Split[];
   categoryId: string;
-  accountId: string;
   date: Date;
 }
 

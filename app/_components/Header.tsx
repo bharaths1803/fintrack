@@ -15,14 +15,14 @@ const Header = async () => {
   await syncUser();
 
   return (
-    <nav className="bg-white border-gray-100 border-b fixed top-0 w-full">
+    <nav className="bg-white border-gray-100 border-b fixed top-0 w-full z-50">
       <div className="mx-auto px-1 sm:px-2 lg:px-4">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <DollarSign className="h-6 w-6 text-primary-600" />
-            <span className="ml-2 font-bold text-xl text-gray-900">
-              FinTrack
-            </span>
+            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex justify-center items-center">
+              <DollarSign className="h-6 w-6 text-white" />
+            </div>
+            <span className="font-bold text-xl text-gray-900">FinTrack</span>
           </div>
           <div className="flex items-center space-x-4">
             <SignedOut>
