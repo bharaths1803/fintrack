@@ -16,13 +16,13 @@ export async function createExpense(data: Omit<SharedExpense, "id">) {
     const { splits, ...otherData } = data;
 
     const sharedExpense = await prisma.$transaction(async (tx) => {
-      const expense = await prisma.expense.create({
+      const expense = await tx.expense.create({
         data: otherData,
       });
 
       await Promise.all(
         splits.map((s) =>
-          prisma.split.create({
+          tx.split.create({
             data: {
               hasAlreadyPaid: otherData.userId === s.userId,
               splitAmount: s.splitAmount,

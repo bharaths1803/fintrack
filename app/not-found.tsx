@@ -34,13 +34,13 @@ const NotFound = async () => {
     { label: "Home", path: "/", icon: <Home size={16} />, auth: false },
     {
       label: "Sign In",
-      path: "/signin",
+      path: "/sign-in",
       icon: <DollarSign size={16} />,
       auth: false,
     },
     {
       label: "Sign Up",
-      path: "/signup",
+      path: "/sign-up",
       icon: <DollarSign size={16} />,
       auth: false,
     },
