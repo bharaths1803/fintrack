@@ -755,7 +755,7 @@ const TransactionsPageClient = ({
         <>
           <div className="z-40 h-full fixed inset-0 bg-black opacity-50" />
           <div className="fixed inset-0 z-50 flex justify-center items-center">
-            <div className="max-w-md bg-white rounded-lg shadow-xl w-full animate-scale z-50">
+            <div className="max-w-md bg-white rounded-lg shadow-xl w-full animate-scale z-50 max-h-[90%] overflow-y-auto">
               <div className="flex justify-between items-center p-4 border-b border-gray-200">
                 <h2 className="text-gray-900 text-xl font-semibold">
                   {editingTransactionId
