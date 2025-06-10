@@ -168,10 +168,15 @@ export default function Home() {
                 Start Tracking For Free
                 <ChevronRight className="ml-2 w-5 h-5 inline-block" />
               </Link>
-              <button className="inline-flex items-center justify-center bg-white text-primary-600 hover:bg-gray-50 px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg">
+              <a
+                className="inline-flex items-center justify-center bg-white text-primary-600 hover:bg-gray-50 px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg"
+                href="https://www.loom.com/share/1f23f61aafbf41e5b2fc3100d3162c5a?sid=85ab104e-d2a2-4122-97c9-0e398e4aea1f"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Play className="w-5 h-5 mr-2" />
                 Watch Demo
-              </button>
+              </a>
             </div>
           </SignedOut>
         </div>
